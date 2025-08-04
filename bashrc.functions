@@ -1,0 +1,4529 @@
+# vim:fileencoding=utf-8:foldmethod=marker
+
+#{{{ >>>   stanford >#3
+stanford() {
+read -p "TERM   >>>   " TERM
+menu echo $(curl -s https://plato.stanford.edu/search/searcher.py?query=$TERM|pandoc -f html -t plain|grep https)
+
+LENGHT=$(curl -s https://plato.stanford.edu/search/searcher.py?query=$TERM|pandoc -f html -t plain|wc -l)
+curl -s https://plato.stanford.edu/search/searcher.py?query=$TERM|pandoc -f html -t plain|tail -n$(( $LENGHT - 35 ))|head -n -111 >> $TERM.stanford
+less $TERM.stanford
+}
+
+#}}} <#13
+#{{{ >>>   show time >#14
+showtime() {
+echo -e "\033[36m ╭─────\033[33m⟦ \033[37mTime \033[33m⟧"
+echo -e "\033[36m ╰────\033[35m❨ \033[32m$(date +%H-%M) \033[0"
+}
+
+
+
+#}}} <#22
+#{{{ >>>   get_location >#23
+get_location() {
+json=$(curl https://ipinfo.io -s)
+for key in city region country; do
+    echo -n "$key: "
+    echo $json | jq .$key
+done
+}
+#}}} <#31
+#{{{ >>>   border
+border(){
+    read -p"> " COMM
+    $COMM | awk '{
+    # Store the incoming line in the buffer
+    lines[NR % 5] = $0;
+
+    # Track the longest line seen so far
+    if (length($0) > global_max_len) {
+        global_max_len = length($0);
+    }
+
+    # Only process when we have at least 5 lines and the line number is even
+    if (NR >= 5 && NR % 2 == 0) {
+        # Create top and bottom borders with the global max width
+        top_border = "╔";
+        for (i = 1; i <= global_max_len + 2; i++) top_border = top_border "═";
+            top_border = top_border "╗";
+
+            bottom_border = "╚";
+            for (i = 1; i <= global_max_len + 2; i++) bottom_border = bottom_border "═";
+                bottom_border = bottom_border "╝";
+
+        # Use tput to move the cursor to row 10 and column 0 before printing
+        system("tput cup 10 0");
+
+        # Print the top border
+        print top_border;
+
+        # Print the 5 most recent lines, wrapped in the border
+        for (i = 0; i < 5; i++) {
+            printf("║ %-*s ║\n", global_max_len, lines[(NR - 5 + i) % 5]);
+        }
+
+        # Print the bottom border
+        print bottom_border;
+
+        # Sleep for 0.2 seconds to slow down the updates
+        system("sleep 0.2");
+    }
+}'
+}
+#}}} <#74
+#{{{ >>>   check xx[0-9] variable >#75
+
+checkxx(){
+    cc1=$(cat .bashrc|grep "xx[0-9]"|wc -l)
+    cc2=$(cat .bashrc.aliases|grep "xx[0-9]"|wc -l)
+    cc3=$(cat .bashrc.navigation|grep "xx[0-9]"|wc -l)
+    cc4=$(( $cc1 + $cc2 + $cc3 ))
+    echo "The variable xx[0-9] is $cc4 present in your bashrc"
+}
+alias checkxx='checkxx'
+
+#}}} <#86
+#{{{ >>>   Countdown function >#87
+
+countd(){
+ #   clear
+    tput civis
+    echo -e "Time Now              : $(date +%H:%M)"
+    echo -e "Time to Countdown too : "
+    tput cup 1 24
+    read -n2 dd
+    tput cup 1 24
+    echo -e "$dd:"
+    tput cup 1 27
+    read -n2 ee
+    echo -e "\n"
+    ALARM="mpv $(find /home/batan/Music -type f -name "*mp3"|head -n1)"
+    read -e -p "Command to run:   >>>   " -i "$ALARM" COMMAND
+
+    bb=$(date -d ${dd}:${ee} +%s)
+    aa=$(date +%s)
+    ff=$(( $bb - $aa ))
+    echo -e "\033[37m"
+    for i in $(seq -f "%06g" $ff -1 0); do tput cup 10 20 && echo $i && sleep 1;done
+    echo -e "\033[0m" &&
+    clear &&
+    $COMMAND
+    $@
+}
+#}}} <#114
+#{{{ >>>   Reminder >#115
+reminder(){
+    if [[ ! -d /home/batan/.config/reminder ]]; then
+        mkdir -p /home/batan/.config/reminder
+    fi
+    vim /home/batan/.config/reminder/$(date +%j).rem
+}
+#}}} <#122
+#{{{ >>>   Download Video incl Quality >#123
+d4(){
+    clear
+    counter="1"
+    while :;
+    do
+        read -p "URL $counter:   >>>   " abc
+        if [[ -z $abc ]];
+        then
+            break
+        fi
+        : $((counter++))
+        input="$input $abc"
+    done
+    clear
+    for URL in ${input[@]};
+    do
+        clear
+        echo -e "Downloading $counter videos"
+         echo -e "\033[36m════════════════════════════════════════════════════════════════════════════════\033[0"
+        /home/batan/.local/bin/yt-dlp --restrict-filenames --force-download-archive \
+            --download-archive /media/batan/100/Videos/archive.txt \
+            --restrict-filenames $URL
+                    : $((counter--))
+                done
+                clear
+                echo -e "To remove whitespace in following videos and move to dir Videos enter [[ ANY ]]"
+                 echo -e "\033[36m════════════════════════════════════════════════════════════════════════════════\033[0"
+                ls *mp4
+                 echo -e "\033[36m════════════════════════════════════════════════════════════════════════════════\033[0"
+                read n1 xxx
+                rename 's/ /_/g' *mp4
+                mv *mp4 /home/batan/Videos
+            }
+            #}}} <#157
+#{{{ >>>   download >#158
+download_modular() {
+# Function to read URLs
+read_urls() {
+    counter="1"
+    while :; do
+        clear
+       echo -e "\033[33m${counter}. \033[34mURL:\033[33m   >>>   "
+       tput cup 0 30
+       read url
+
+        if [[ -z $url ]]; then
+            break
+        fi
+        echo $url >> $LIST
+        urls+=("$url")
+        ((counter++))
+    done
+}
+# Function to select quality for each URL
+select_qualities() {
+    for i in $(echo -e ${urls[@]}) ; do
+        options=$(/home/batan/.local/bin/yt-dlp -F $i 2>/dev/null| awk '{print $1}' | grep '[0-9]p')
+        select QUALITY in ${options[@]}; do
+        /home/batan/.local/bin/yt-dlp -f $QUALITY $i
+        done
+    done
+}
+read_urls
+select_qualities
+
+}
+#}}} <#190
+#{{{ >>>   download_with_quality >#191
+download_with_quality() {
+clear
+LIST="/home/batan/Downloads/tempurl.list.$(date +%j.%s).txt"
+echo -e "\033[32m---\033[36m[[[\033[35m >>>\033[37m LC \033[31m-\033[37m Linux\033[31m -\033[37m Downloads\033[35m <<<\033[36m ]]]\033[32m---\033[0m"
+echo -e "           ----------------------"
+
+clear
+echo -e "\033[34mPlease enter the directory to donload to...\033[33m"
+tput cup 0 45
+DIRECTORY="/home/batan/Videos"
+if [[ ! -d $DIRECTORY ]]; then
+mkdir -p $DIRECTORY
+fi
+cd $DIRECTORY
+clear
+
+xxx=$(wmctrl -l|grep Terminal|tail -n1|cut -c 1-11)
+xdotool getactivewindow windowsize 1200 120
+xdotool getactivewindow windowmove 1920 0
+xdotool windowraise
+xdotool focus
+xdotool windowactivate
+wmctrl -i -r $xxx -b add,above
+counter=1
+declare -a urls
+declare -a qualities
+
+clear
+
+# Function to read URLs
+read_urls() {
+    while :; do
+        clear
+    tput cup 0 0;echo -e "\033[34m╭────────────────────────────────────────────────────────────────────────────────❯▶\033[0m"
+    tput cup 1 0;echo -e "\033[34m╰─────\033[37m  ──────────────────────── \033[32m ───────────────────────────────────────────\033[0m"
+    tput cup 2 0;echo -e "\033[8G\033[37m Enter \033[33m$counter.\033[37mURL   \033[33m>>>    "
+                 echo -e "\033[34m╭───── \033[37m ──────────────────────── \033[32m ───────────────────────────────────────────\033[0m" 
+                echo -e "\033[34m╰────────────────────────────────────────────────────────────────────────────────❯▶ \033[0m"
+    tput cup 2 26;read  url
+        if [[ -z $url ]]; then
+            break
+        fi
+        echo $url >> $LIST
+	urls+=("$url")
+        ((counter++))
+    done
+}
+
+# Function to select quality for each URL
+select_qualities() {
+    for i in "${!urls[@]}"; do
+        options=$(/home/batan/.local/bin/yt-dlp -F "${urls[i]}" | awk '{print $1}' | grep '[0-9]p')
+        echo -e "\033[34mSelect quality for URL $((i+1))\033[0m"
+        select quality in $options; do
+            qualities+=("$quality")
+            break
+        done
+    done
+}
+
+# Function to download videos
+download_videos() {
+    for i in "${!urls[@]}"; do
+        clear
+        echo -e "Downloading your $((i+1)). URL"
+         echo -e "\033[36m════════════════════════════════════════════════════════════════════════════════\033[0"
+        /home/batan/.local/bin/yt-dlp --restrict-filenames -f "${qualities[i]}" "${urls[i]}"
+    done
+        rename  's/ /_/g' *
+	rename  's/!//g' *
+	rename  's/&//g' *
+	rename  's/,//g' *
+	rename 's/\[.*\]//g' *
+	rename  's/\(.*\)//g' *
+	rename  's/\".*\"//g' *
+	rename 's/_\./\./g' *
+    rename 's/-\./\./g' *
+    
+}
+
+#funktion to download MP3s
+
+download_music() {
+    for i in "${!urls[@]}"; do
+        clear
+        echo -e "Downloading your $((i+1)). URL"
+         echo -e "\033[36m════════════════════════════════════════════════════════════════════════════════\033[0"
+        /home/batan/.local/bin/yt-dlp -x --audio-format mp3 --restrict-filenames "${urls[i]}"
+	done
+        rename  's/ /_/g' *
+	rename  's/!//g' *
+	rename  's/&//g' *
+	rename  's/,//g' *
+	rename 's/\[.*\]//g' *
+	rename  's/\(.*\)//g' *
+	rename  's/\".*\"//g' *
+	rename 's/_\./\./g' *
+	rename 's/-\./\./g' *
+}
+
+
+# Main script execution
+read_urls
+lines=${#urls[@]}
+clear
+echo -e "\033[32mWhat type of media do you want to download:"
+echo -e "\033[31m   >>>  \033[32m 1\033[33m)\033[37m mp3"
+echo -e "\033[31m   >>>  \033[32m 2\033[33m)\033[37m mp4"
+read -p "   >>>   " MEDIA
+if [[ $MEDIA == "1" ]]; then
+DIRECTORY="/home/batan/Music"
+download_music
+clear
+echo -e "MP3s downloaded"
+exit 0
+fi
+
+clear
+cd $DIRECTORY
+
+yyy="Yes"
+
+if [[ "$yyy" == "Yes" ]]; then
+select_qualities
+fi
+clear
+number=$(echo ${urls[@]}|wc -l)
+    tput cup 0 0;echo -e "\033[34m╭────────────────────────────────────────────────────────────────────────────────❯▶\033[0m"
+    tput cup 1 0;echo -e "\033[34m╰─────\033[37m  ──────────────────────── \033[32m ───────────────────────────────────────────\033[0m"
+    tput cup $(( $number + 2 )) 0;echo -e "\033[34m╭───── \033[37m ──────────────────────── \033[32m ───────────────────────────────────────────\033[0m" 
+                    echo -e "\033[34m╰────────────────────────────────────────────────────────────────────────────────❯▶ \033[0m"
+tput cup 2 0    
+for i in "${!urls[@]}"; do
+    echo -e "\033[34mFor URL\033[31m $((i+1))\033[34m, you selected quality \033[31m${qualities[i]}\033[0m"
+done
+
+echo -e '\033[34mEnter\033[31m [ANY]\033[34m to continue ...\033[0m' 
+tput cup $(( $number + 6 )) 0
+download_videos
+}
+
+#}}} <#333
+#{{{ >>>   download_list STANDALONE download from list.txt >#334
+
+download_list() {
+    LINKS=$(cat list.txt)
+    counter="1"
+    TOTAL=$(echo $LINKS|wc -l)
+
+    if [[ -z $LINKS ]];
+    then
+        clear
+        echo -e "Could not find any links."
+        echo -e "Please make sure that the file \033[31mlist.txt\033[0m exists and\n theurl links to be downloaded are recorded within."
+        read -n1 -p "Enter [ANY] to continue..." xxx
+    fi
+    for URL in ${LINKS[@]};
+    do
+        clear
+        echo -e "Link \033[32m${counter} \033[0m of $TOTAL"
+        /usr/bin/yt-dlp_linux --restrict-filenames $URL
+    done
+}
+
+#}}} <#356
+#{{{ >>>   Bleach >#357
+
+bls() {
+    SYSTEM="cache clipboard custom desktop_entry localizations memory recent_documents rotated_logs tmp trash"
+    for x in ${SYSTEM[@]}; do sudo bleachbit -c system.$x ;done
+}
+
+blf () {
+    FIREFOX="backup cache cookies crash_reports dom forms passwords session_restore site_preferences url_history vacuum"
+    for i in ${FIREFOX[@]}; do sudo bleachbit -c firefox.$i ;done
+}
+
+bla() {
+    APT="autoclean autoremove clean package_lists"
+    for i in ${APT[@]}; do sudo bleachbit -c .$i ;done
+}
+
+bld() {
+    DEEPSCAN="backup ds_store thumbs_db tmp"
+    for i in ${DEEPSCAN[@]}; do sudo bleachbit -c .$i ;done
+}
+
+lca(){
+    sudo apt autoremove --purge -y
+    sudo apt autoclean
+    sudo apt clean
+    sudo dpkg --configure -a
+}
+
+lcu() {
+    sudo apt update
+    sudo apt upgrade -y
+}
+
+lcsys() {
+    lcvar=$(echo -e "bleach-system\nbleach-firefox\nbleach-apt\nbleach-deepscan\nclear-apt\nupdate-apt"|fzf -m --reverse --margin 0 --padding 0 --height 10)
+    if [[ $lcvar == bleach-system ]]; then
+        bls
+
+    elif [[ $lcvar == bleach-firefox ]]; then
+        blf
+
+    elif [[ $lcvar == bleach-apt ]]; then
+        bla
+
+    elif [[ $lcvar == bleach-deepscan ]]; then
+        bld
+    elif [[ $lcvar == clear-apt ]]; then
+        lca
+
+    elif [[ $lcvar == update-apt ]]; then
+        lcu
+    fi
+
+}
+
+#}}} <#413
+#{{{ >>> lcplaylist >#414
+lcplaylist() {
+NUM="${#playlist_input[@]}"
+clear
+echo -e "\033[32mPlaying playlist of $NUM videos\033[0m"
+    for video_url in ${playlist_input[@]}; do
+    mpv --no-terminal --ytdl-format="bestvideo[height<=360]+bestaudio/best[height<=360]" "$video_url" 2>/dev/null
+
+done
+
+}
+
+#}}} <#426
+#{{{ >>>   lc-clipboard functions >#427
+
+
+
+#HTOP="\033[32m┌───────────────────────────────────────────────────────┐\033[9m"
+#HBOT="\033[32m└───────────────────────────────────────────────────────┘\033[0m"
+#files="9x*"
+#cat  /home/batan/.config/lc-clipboard/register{1..9}|grep http|sed 's/^/$HH /g'|sed 's/$/ $HH/g'
+#HH="\033[32m│\033[0m"                                           
+#HF="\033[32m─\033[0m"                         
+#TL="\033[32m┌\033[0m"                                           
+#TR="\033[32m┐\033[0m"                                           
+#HH="\033[32m│\033[0m"                                           
+#files="9x*"
+#HTOP="${TL}$(printf '%*s' "$max_length" | tr ' ' "$HF")${TR}"
+#HBOT="\033[32m└$(printf '%*s' "$max_length" | tr ' ' "$HF")┘\033[0m"
+
+
+#{{{ >>>   reg function  >#445
+move_register() {
+	   
+        cat /home/batan/.config/lc-clipboard/register9|grep "http" >> /home/batan/.config/lc-clipboard/auto.register.md 2>/dev/null
+		rm -f /home/batan/.config/lc-clipboard/register9 2>/dev/null 
+		mv /home/batan/.config/lc-clipboard/register8 /home/batan/.config/lc-clipboard/register9 2>/dev/null 
+		mv /home/batan/.config/lc-clipboard/register7 /home/batan/.config/lc-clipboard/register8 2>/dev/null
+		mv /home/batan/.config/lc-clipboard/register6 /home/batan/.config/lc-clipboard/register7 2>/dev/null
+		mv /home/batan/.config/lc-clipboard/register5 /home/batan/.config/lc-clipboard/register6 2>/dev/null
+		mv /home/batan/.config/lc-clipboard/register4 /home/batan/.config/lc-clipboard/register5 2>/dev/null
+		mv /home/batan/.config/lc-clipboard/register3 /home/batan/.config/lc-clipboard/register4 2>/dev/null
+		mv /home/batan/.config/lc-clipboard/register2 /home/batan/.config/lc-clipboard/register3 2>/dev/null
+		mv /home/batan/.config/lc-clipboard/register1 /home/batan/.config/lc-clipboard/register2 2>/dev/null
+		touch /home/batan/.config/lc-clipboard/register1
+}
+
+#{{{ >>>   register_help >#461
+register_help() {
+    
+        printf "         \033[32m***   \033[37mHELP MENU   \033[32m***\033[36m                     
+        reg [options] file ...\033[34m                            
+        if no options are specified the default behaivior 
+            is to echo all 9 registers otherwise:             	 
+            \033[37mOptions:                                      
+            \033[32m--help\033[0m       prints his menu               
+            \033[32m--echo\033[0m       echos all registers  
+            \033[32m--clear\033[0m      clears all registers          
+            \033[32m--playlist\033[0m   adds selected register[s] to playlist  
+            \033[32m--parse\033[0m      parses selected register[s] to notes  
+            \033[32m--buku\033[0m       bookmarks urls stored in lccboard
+                         using buku and tags them 'lccboard & date j'
+                         deletes all registers
+            \033[32m--append\033[0m     appends individual or all registers to 
+                         a file in a cache file  
+            \033[32m--open\033[0m       opens the url stored in single
+                         or all registers in firefox
+            \033[32m--download\033[0m   prompts for yes no input and  
+                         determins whether to download
+                         mp4 or mp3 format
+            \033[32m--redirect\033[0m   stops redirecting clipboard content to
+                         registers, clears clipboard and redirects any content it 
+                         detects to lc-gutenberg directory where the text file gets
+                         converted to mp3 tts and is played. There after both files 
+                         are deleted.
+                         requires no further interaction.
+
+
+            \033[36mExample command:\033[37m
+        reg --redirect tts\033[36m
+            [clear clipboard, registers and exec tts]\033[37m
+        reg --download all mp4\033[36m
+            [assumes url in all registers and starts downloading them as mp4s]\033[37m
+        reg --download 1,2,3 mp3\033[36m
+            [as above but does so from register 1,2 and 3]\033[37m
+        reg --parse [all,1-9]  will parse the selected gegister to 
+		                       plain text in .lcconfig/notes as 
+							   reg.$REG.$(date +%j.%M).wiki
+			reg --copy all\033[0m       copies all registers to cache 
+        reg --playlist 2\033[36m
+            [adds url stored in register 2 to $playlist_variable ]\033[37m 
+            
+            This software is free to use blah blah blah blah  
+            but dont forget to subscripe,  hug my youtube channel
+            kiss it, hold it and call it babe....             
+            "
+        }
+#}}} <#507
+reg() {
+
+    get_urls() {
+HH="\033[32m│\033[0m"                                           
+HF="\033[32m─\033[0m"                         
+TL="\033[32m┌\033[0m"                                           
+TR="\033[32m┐\033[0m"                                           
+HH="\033[32m│\033[0m"                                           
+files=$(ls  /home/batan/.config/lc-clipboard/register[0-9])
+HTOP="${TL}$(printf '%*s' "$max_length" | tr ' ' "$HF")${TR}"
+HBOT="\033[32m└$(printf '%*s' "$max_length" | tr ' ' "$HF")┘\033[0m"
+max_length=$(cat $files | awk '{ if (length > max) max = length } END { print max }')
+nu_files=$(cat /home/batan/.config/lc-clipboard/register[0-9]|grep http|wc -l)
+
+}
+print_all_urls() {
+    tput cup 3 20
+    echo -e "\033[36mDownloading the Following URLs:"
+    tput cup 4 0
+    echo -e "$TL$(printf '%*s' "$max_length" | tr ' ' "$HF")$TR"
+    for i in $(seq $nu_files -1 1); do
+        tput cup $(( 4 + $i )) 0
+        echo -e $HH
+        tput cup $(( 4 + $i )) $max_length
+        echo -e $HH
+    done
+    echo -e "$TL$(printf '%*s' "$max_length" | tr ' ' "$HF")$TR"
+    for x in $(cat /home/batan/.config/lc-clipboard/register{1..9}|grep http); do
+        tput cup $(( 4 + $i )) 1
+        echo $x
+    done
+
+}
+print_urls() {
+  echo "$HTOP"
+ tput cup 1
+  cat $files | awk -v hh="$HH" '{ print hh $0 hh }'
+  echo "$HBOT"
+}
+
+
+
+    COUN="$(ls /home/batan/.config/lc-clipboard/total.list*|wc -l)"
+    if [[ $1 == "--copy" ]] && [[ $2 == "all" ]]; then
+        ((COUN++))
+        cat /home/batan/.config/lc-clipboard/register{1..9} >> /home/batan/.config/lc-clipboard/total.list.$COUN
+        echo -e "\033[36mYour cache file:\033[0m"
+        ls /home/batan/.config/lc-clipboard/total.list.$COUN
+        cat /home/batan/.config/lc-clipboard/total.list.$COUN
+    elif [[ $1 == "--download" ]] && [[ $2 == "all" ]]; then
+        if [[ $3 == mp4 ]]; then
+            clear
+
+            get_urls
+            print_all_urls
+            #echo -e "\033[36mDownloading the URLs as MP4s...\033[0m"
+			for x in $(seq 1 9); do
+			
+				URL=$(cat /home/batan/.config/lc-clipboard/register${i}) 
+				TITLE=$(/usr/bin/yt-dlp --skip-download --get-title $URL|sed 's/ /_/g')
+				/usr/bin/yt-dlp $URL -o $TITLE.mp4
+			done
+        else
+            clear
+            get_urls
+            print_all_urls
+            #echo -e "\033[36mDownloading the URLs as MP3s...\033[0m"
+            yt-dlp -x --extract-audio --restrict-filenames -a /home/batan/.config/lc-clipboard/register{1..9} 
+        fi
+
+	elif [[ $1 == "--playlist" ]] && [[ $2 == [0-9] ]]; then
+		cat /home/batan/.config/lc-clipboard/register${2} >> /home/batan/.lcconfig/lists/playlist.$(date +%j)
+	elif [[ $1 == "--playlist" ]] && [[ $2 == "all" ]]; then
+		cat /home/batan/.config/lc-clipboard/register{1..9} >> /home/batan/.lcconfig/lists/playlist.$(date +%j)
+	fi
+  
+
+	if [[ $1 == "--download" ]] && [[ $2  =~ ^[0-9]+$ ]]; then
+        if [[ $3 == mp4 ]]; then
+            clear
+            get_urls
+            print_all_urls
+            #echo -e "\033[36mDownloading the URLs as MP4s...\033[0m"
+            yt-dlp -a /home/batan/.config/lc-clipboard/register${2} 
+        else
+            clear
+            get_urls
+            print_all_urls
+            #echo -e "\033[36mDownloading the URLs as MP3s...\033[0m"
+            yt-dlp -x --extract-audio --restrict-filenames -a /home/batan/.config/lc-clipboard/register${2} 
+        fi
+    elif [[ $1 == "--open" ]] && [[ $2 == "all" ]]; then
+        for i in $(seq 9 -1 1);
+        do
+            sudo killall firefox-bin
+      firefox $(cat "/home/batan/.config/lc-clipboard/register$i")
+        done
+    elif [[ $1 == "--open" ]] && [[ $2 =~ ^[0-9]+$ ]]; then
+        sudo killall firefox-bin
+            firefox $(cat "/home/batan/.config/lc-clipboard/register$2")
+    elif [[ $1 == "--parse" ]] && [[ $2 == "all" ]]; then
+		for REG in $(seq 1 9); do
+			#!/bin/bash
+TITLE=$(curl -sL "$URL" | awk '
+    /<title>/ { in_title=1; next }
+    /<\/title>/ { in_title=0; exit }
+    in_title { print }
+' | tr '\n' ' ' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/[[:space:]]+/_/g')
+
+
+#TITLE=$(curl -sL "$URL" | awk '
+#    /<title>/ { in_title=1; next }
+#    /<\/title>/ { in_title=0; exit }
+#    in_title { print }
+#' | tr -d "\n")
+
+
+
+#			if [[ $(curl -sL $REG|grep "<title>"|sed 's/<title>//g'|wc -c) < "5" ]];then 
+#				TITLE=$(curl -sL $REG|grep "<title>"|sed 's/<title>//g'|sed 's!</title>!!g'|sed 's/ /_/g')
+#			fi
+
+
+				
+
+			curl -sL $(cat /home/batan/.config/lc-clipboard/register${REG})|pandoc -f html -t plain >>  /home/batan/.lcconfig/notes/${TITLE}.wiki
+		done
+    elif [[ $1 == "--parse" ]] && [[ $2 =~ ^[0-9]+$ ]]; then
+			curl -sL $(cat /home/batan/.config/lc-clipboard/register${2})  |pandoc -f html -t plain >>  /home/batan/.lcconfig/notes/${TITLE}.wiki
+	
+
+
+
+    
+    elif [[ $1 == "--playlist" ]]; then
+        if [[ -z $2 ]]; then
+            register_help
+        fi
+        if [[ $2 == "all" ]]; then
+            for i in $(seq 9 -1 1); do
+                playlist_input="$playlist_input $(cat "/home/batan/.config/lc-clipboard/register$i")"
+            done
+        elif [[ $2 == [0-9] ]];then
+            playlist_input="$playlist_input $(cat "/home/batan/.config/lc-clipboard/register$2")"
+        fi
+    elif [[ $1 == "--loop" ]]; then
+        if [[ ! -f "/home/batan/.config/lc-clipboard/loop_register" ]]; then
+        touch "/home/batan/.config/lc-clipboard/loop_register"
+        else
+        reg --append 1 /home/batan/.config/lc-clipboard/loop_register
+        fi
+        
+
+    elif [[ $1 == "--redirect" ]] && [[ $2 == "tts" ]]; then
+        xclip -selection clipboard /dev/null && xclip -selection primary /dev/null
+        if [[ ! -f "/home/batan/.config/lc-clipboard/toggle_register" ]]; then
+            touch "/home/batan/.config/lc-clipboard/toggle_register"
+        else
+            rm -f "/home/batan/.config/lc-clipboard/toggle_register"
+            
+        fi
+   # elif [[ $1 == "--parse" ]] && [[ $2 == "all" ]]; then
+
+    #    for i in $(seq 9 -1 1); do
+     #       curl -sL -A "$USER_AGENT" $(cat "/home/batan/.config/lc-clipboard/register$i")|grep https|sed 's!.*https!https!g'|grep "m3u8"|rev|cut -c4-300|rev
+      #  done
+       #     else
+        #        curl -sL -A "$USER_AGENT" $(cat "/home/batan/.config/lc-clipboard/register$2")|grep https|sed 's!.*https!https!g'|grep "m3u8"|rev|cut -c4-300|rev
+         #       fi
+
+
+
+
+
+    elif [[ $1 == "--append" ]] && [[ $2 == "all" ]]; then
+        for i in $(seq 9 -1 1);
+        do
+            cat "/home/batan/.config/lc-clipboard/register$i" >> $3
+        done
+    elif [[ $1 == "--append" ]] && [[ $2 =~ ^[0-9]+$ ]]; then
+            cat "/home/batan/.config/lc-clipboard/register$2" >> $3
+    
+
+
+    elif [[ $1 == "--clear" ]] && [[ $2 == "all" ]]; then
+        rm /home/batan/.config/lc-clipboard/register{1..9} 
+        touch /home/batan/.config/lc-clipboard/register{1..9} 
+    elif [[ $1 == "--clear" ]] && [[ $2 =~ ^[0-9]+$ ]]; then
+        rm /home/batan/.config/lc-clipboard/register${2} 
+        touch /home/batan/.config/lc-clipboard/register${2}
+     
+
+
+    elif [[ $1 == "--echo" ]] && [[ $2 == "all" ]]; then
+        cat /home/batan/.config/lc-clipboard/register{1..9} 
+    elif [[ $1 == "--echo" ]] && [[ $2 =~ ^[0-9]+$ ]]; then
+        cat "/home/batan/.config/lc-clipboard/register${2}" 
+
+    elif [[ $1 == "--buku" ]] && [[ $2 == "all" ]]; then
+        for x in $(seq 9 -1 1); do
+            buku --add $(cat /home/batan/.config/lc-clipboard/register${x}|grep "http") +$(date +%j),lccboard 
+            sudo trash /home/batan/.config/lc-clipboard/register${x}
+            touch /home/batan/.config/lc-clipboard/register${x}
+        done
+    elif [[ $1 == "--buku" ]] && [[ $2 =~ ^[0-9]+$ ]]; then
+            buku --add $(cat /home/batan/.config/lc-clipboard/register${2}|grep "http") +$(date +%j),lccboard 
+            sudo trash /home/batan/.config/lc-clipboard/register${2}
+            touch /home/batan/.config/lc-clipboard/register${2}
+
+    elif [[ $1 == "--help" ]]; then
+        register_help
+        elif [[ $1 == "" ]]; then
+            cat /home/batan/.config/lc-clipboard/register{1..9} 
+    fi
+
+}
+#}}} <#668
+#{{{ >>>   reg{1..9} functions >#669
+
+reg1() {
+    cat /home/batan/.config/lc-clipboard/register1
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register1|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+
+}
+
+reg2() {
+    cat /home/batan/.config/lc-clipboard/register2
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register1|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+
+
+reg3() {
+    cat /home/batan/.config/lc-clipboard/register3
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register3|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+
+reg4() {
+    cat /home/batan/.config/lc-clipboard/register4
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register4|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+reg5() {
+    cat /home/batan/.config/lc-clipboard/register5
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register5|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+
+reg6() {
+    cat /home/batan/.config/lc-clipboard/register6
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register6|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+
+reg7() {
+    cat /home/batan/.config/lc-clipboard/register7
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register7|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+
+reg8() {
+    cat /home/batan/.config/lc-clipboard/register8
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register8|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+
+reg9() {
+    cat /home/batan/.config/lc-clipboard/register9
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register9|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+#}}} <#788
+#}}}  <#789
+#{{{ >>>   lc-cd >#790
+
+
+#lc() {
+#    local dest_dir=$(cat /home/batan/.lc-cd | fzf)
+#    [[ -z "$dest_dir" ]] && return  # Exit if no selection
+#
+#    local session_name=$(basename "$dest_dir")
+#
+#    if tmux has-session -t "$session_name" 2>/dev/null; then
+#        tmux attach-session -t "$session_name"
+#    else
+#        tmux new-session -d -s "$session_name" -c "$dest_dir"
+#        tmux send-keys -t "$session_name" "clear; ls" Enter
+#
+#        # Wait for a moment to allow command execution
+#        sleep 1  
+#
+#        # Capture the working directory inside tmux
+#        local current_dir=$(tmux display-message -p -t "$session_name" '#{pane_current_path}')
+#
+#        # If the directory inside tmux is different from the original one, detach
+#        if [[ "$current_dir" != "$dest_dir" ]]; then
+#            tmux detach -s "$session_name"
+#        else
+#            tmux attach-session -t "$session_name"
+#        fi
+#    fi
+#}
+
+
+
+#lc(){
+#    local dest_dir=$(cat /home/batan/.lc-cd| fzf )
+#    if [[ $dest_dir != '' ]]; then
+#        cd $dest_dir
+#    fi
+#}
+#}}} <#834
+#{{{ >>>   generate_directory_list >#858
+generate_directory_list() {
+find /media/batan/100/ /home/batan/.config/ /home/batan /media/batan -maxdepth 1 -type d && find /media/batan -maxdepth 1 -type d|sed 's/$/\/home\/batan/g'
+}
+#}}} <#862
+#{{{ >>>   select_usb_device >#863
+select_usb_device() {
+    mapfile -t devices < <(lsblk -dpno NAME,TYPE | awk '$2=="disk" {print $1}' | while read -r dev; do
+        if udevadm info --query=property --name="$dev" | grep -q 'ID_BUS=usb'; then
+            echo "$dev"
+        fi
+    done)
+
+    if [[ ${#devices[@]} -eq 0 ]]; then
+        echo "No USB devices found." >&2
+        exit 1
+    elif [[ ${#devices[@]} -eq 1 ]]; then
+        echo "${devices[0]}"
+    else
+        echo "Multiple USB devices found:"
+        for i in "${!devices[@]}"; do
+            model=$(lsblk -ndo MODEL "${devices[$i]}")
+            size=$(lsblk -ndo SIZE "${devices[$i]}")
+            echo "[$i] ${devices[$i]} ($model, $size)"
+        done
+        while true; do
+            read -rp "Select device number to use: " choice
+            [[ "$choice" =~ ^[0-9]+$ && "$choice" -ge 0 && "$choice" -lt "${#devices[@]}" ]] && break
+            echo "Invalid choice." >&2
+        done
+        echo "${devices[$choice]}"
+    fi
+}
+
+#}}} <#892
+#{{{ >>>   export FZF >#893
+export FZF_DEFAULT_OPTS="  --color=fg:#9FB1BC,fg+:#9FB1BC,bg:#2E5266,bg+:#2E5266\
+    --color=hl:#1a7ada,hl+:#9ae6ff,info:#9fb1bc,marker:#3ee421 \
+    --color=prompt:#1700af,spinner:#F4FFFD,pointer:#F4FFFD,header:#F4FFFD \
+    --color=border:#F7B32B,preview-fg:#9fb1bc,preview-bg:#2e5266 \
+    --color=preview-label:#00857a,label:#f7b32b,query:#d9d9d9 \
+    --border='sharp' --preview-window=right,50%,'wrap' \
+    --padding='2' --margin='4' --prompt='' --marker='->' \
+    --pointer='>>' --separator='─' --scrollbar='│' --info='inline'"
+    #}}} <#902
+#{{{ >>>   yesandno  >#903
+yesandno() {
+    # Define options and corresponding commands
+    OPTIONS=("Yes" "No")
+    COMMANDS=("YESNO=1" "YESNO=0")
+    NUM_OPTIONS=${#OPTIONS[@]}
+
+    tput civis  # Hide cursor
+
+# Function to display options horizontally
+DISPLAY_OPTIONS() {
+    tput setab 4; tput setaf 7
+    echo -ne "\033[1G"  # Move cursor to beginning of the line
+    for ((i=0; i<NUM_OPTIONS; i++)); do
+        if [[ $i -eq $selected ]]; then
+            echo -ne "\e[7m ${OPTIONS[i]} \e[27m "  # Highlight selected option
+        else
+            echo -n " ${OPTIONS[i]} "
+        fi
+    done
+    tput sgr0
+}
+# Function to execute selected command
+EXECUTE_COMMAND() {
+  eval "${COMMANDS[selected]}"
+  return 0
+ 
+}
+
+selected=0
+DISPLAY_OPTIONS
+
+# Main loop
+while true; do
+    IFS= read -rsn1 key
+    if [[ $key == $'\e' ]]; then
+        read -rsn2 key  # Read next two characters
+        case $key in
+            '[D')  ((selected--)) ;;  # Left
+            '[C')  ((selected++)) ;;  # Right
+        esac
+    elif [[ $key == "" ]]; then
+        EXECUTE_COMMAND
+        break
+    fi
+
+    ((selected = (selected + NUM_OPTIONS) % NUM_OPTIONS))
+    DISPLAY_OPTIONS
+done
+
+
+tput cnorm  # Restore cursor visibility
+}
+
+
+#}}} <#958
+#{{{ >>>   fmp3 find and play music >#959
+fmp3() {
+    for x in $(read -p "mp3   >>>   " abc && find /media/batan/100/Music/ -maxdepth 4 -type f -name *$abc*); do mpv $x ;done
+}
+#}}} <#963
+#{{{ >>>   cheatsheets >#964
+cheatsheet() {
+    $aa="ls -1 .config/cheatsheets/|grep ".md"|sed 's/.md//g'|sed 's/_/ /g'|sed 's/cheatsheet//g'"
+    counter=$(ls /home/batan/.config/cheatsheets/|grep cheatsheet.md|wc -l)
+
+    OPTIONS=($(ls -1 .config/cheatsheets/*cheatsheet.md|sed 's/_cheatsheet.md//g'|rev|sed 's/[/].*$//g'|rev|tr '\n' ' '))
+    #	OPTIONS=($(ls -1 .config/cheatsheets/*cheatsheet.md|tr '\n' ' '))
+    COMMANDS=($(ls -1 .config/cheatsheets/*cheatsheet.md|awk '{print "less", $1}'|tr '\n' '' ))
+
+    NUM_OPTIONS=${#OPTIONS[@]}
+
+# Function to display options horizontally
+dISPLAY_OPTIONS() {
+    tput setab 4
+    echo -ne "${White}\033[1G"  # Move cursor to beginning of the line
+    for ((i=0; i<NUM_OPTIONS; i++)); do
+        if [[ $i -eq $selected ]]; then
+            echo -ne "\033[37m\e[7m${OPTIONS[i]}\e[27m "  # Highlight selected option
+        else
+            echo -n "${OPTIONS[i]} "
+        fi
+    done
+    tput sgr0
+}
+
+# Function to execute selected command
+eXECUTE_COMMAND() {
+
+    echo "Executing command: ${COMMANDS[selected]}"
+    # Execute the actual command associated with the selected option
+    ${COMMANDS[selected]}
+}
+
+# Initialize
+selected=0
+dISPLAY_OPTIONS
+
+# Main loop
+while true; do
+    read -s -n1 key  # Read user input
+    case $key in
+        A)  # Up arrow key
+            ((selected--))
+            ;;
+        B)  # Down arrow key
+            ((selected++))
+            ;;
+        "") # Enter key
+            EXECUTE_COMMAND
+            break
+            ;;
+    esac
+
+    if [[ $selected -lt 0 ]]; then
+        selected=$((NUM_OPTIONS - 1))
+    elif [[ $selected -ge $NUM_OPTIONS ]]; then
+        selected=0
+    fi
+    DISPLAY_OPTIONS
+done
+
+
+
+
+}
+
+#{{{ >>>   MISC >#1030
+alias c='clear'
+alias rca='source /home/batan/.bashrc.alieses'
+alias rrc='source /home/batan/.bashrc'
+alias cu='sudo apt autoremove --purge && sudo apt autoclean && sudo apt clean && youtube-dl --rm-cache-dir && sudo sweeper --automatic && sudo bleachbit --preset -c'
+alias cuu='sudo apt autoremove --purge && sudo apt autoclean && sudo apt clean && sudo sweeper --automatic && yt-dlp --rm-cache-dir && sudo bleachbit --preset -c && sudo bash cache.sh && mkdir /home/batan/.cache/calendar.vim/ && cp /home/batan/dot/credentials.vim /home/batan/.cache/calendar.vim/credentials.vim'
+alias p='echo "Ba7an?12982"| xclip -selection clipboard'
+alias ipp='hostname -I && nmcli connection show && sudo ufw status'
+alias mhs="sudo mv /etc/hosts /etc/hosts.bbak"
+alias mhsb="sudo mv /etc/hosts.bbak /etc/hosts"
+
+alias mega='surf https://mega.nz'
+alias gut="xdotool type 'git clone https://github.com/batann/'"
+alias warp="/opt/Warp/./Warp-x86_64.AppImage"
+alias lc-install="nvim /media/batan/100/lc-install.sh"
+alias lc-2-install="nvim /media/batan/100/lc-2-install.sh"
+
+
+
+
+#}}} <#1050
+#===================================================================================
+#}}} <#1052
+#{{{ >>>   lc-ghostty search ghostty manual for intrested term >#1053
+lc-ghostty () {
+read -p "term in ghostty manual:   >>>   " abc 
+ghostty +show-config |grep $abc|awk -F '=' '{printf "%-30s %-5s %-20s \n", $3," <---> ", $2}'
+}
+#}}} <#1058
+#{{{ >>>   xxxmenu >#1059
+menu() {
+    sleep 0.5
+ #   local -n OPTIONS=$1
+ declare -a options=($($@))
+ #   declare -n options="$1"  # Reference the correct array dynamically
+    total=${#options[@]}
+    MAX_DISPLAY=10
+    start_index=0
+    selected=0  # Initialize selected index
+
+    # Decorations
+    HS="\033[32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+
+    function show_menu() {
+        
+        echo -e "$HS"
+        for ((i = 0; i < MAX_DISPLAY; i++)); do
+            idx=$((start_index + i))
+            if [[ $idx -ge $total ]]; then
+                break
+            fi
+            if [[ $idx -eq $selected ]]; then
+                echo -e "\e[1m\e[32m ->  ${options[$idx]}\e[0m"
+            else
+                echo "   ${options[$idx]}"
+            fi
+        done
+        echo -e "$HS"
+        echo -e ""
+    }
+
+    while true; do
+        show_menu
+        read -rsn3 key
+
+        case $key in
+            $'\e[A')  # Up arrow key
+                if (( selected > 0 )); then
+                    ((selected--))
+                fi
+                if (( selected < start_index )); then
+                    ((start_index--))
+                fi
+                ;;
+            $'\e[B')  # Down arrow key
+                if (( selected < total - 1 )); then
+                    ((selected++))
+                fi
+                if (( selected >= start_index + MAX_DISPLAY )); then
+                    ((start_index++))
+                fi
+                ;;
+            '')  # Enter key
+                clear
+                #echo "${options[$selected]}"
+               # xxx="${options[$selected]}"
+				case ${options[$selected]} in
+					'*.chsht.md') less "/home/batan/.lcconfig/cheatsheets/${options[$selected]}" ;;
+				esac
+	#
+	#            echo -e "xxx=$xxx"
+                break 0 2>/dev/null
+                read -rsn1 -p "Press any key to continue..."
+                return  # Exit menu after selection
+                ;;
+        esac
+    done
+}
+
+#}}} <#1125
+#{{{ >>>   cleanup_home >#1126
+cleanup_home() {
+    chk_sub_dir() {
+        OPTIONS_SUB_DIR=('Documents' 'Videos' 'Music' 'Wiki' 'Archives' 'SH' 'Coding' 'Installation_Files' 'E-Books' 'Fonts' 'Configurations')
+        for dir in ${OPTIONS_SUB_DIR[@]};
+        do
+            if [[ ! -d /home/batan/$dir ]]; then
+                mkdir -p /home/batan/$dir
+            fi
+        done
+    }
+    check_for_wiki() {
+        for x in $(ls /home/batan/*.wiki); do
+            mv $x /home/batan/Wiki
+        done
+    }
+    check_for_bash_scripts() {
+
+        for x in $(grep -d skip -l "() {" /home/batan/*); do
+            mv $x /home/batan/SH
+        done
+        for x in $(ls /home/batan/*.sh); do
+            mv $x /home/batan/SH
+        done
+        for x in $(grep -d skip -l "bin/bash" /home/batan/*); do
+            mv $x /home/batan/SH
+        done
+    }
+
+    mv_to_sub_dir() {
+        mv /home/batan/*.jpg /home/batan/*.jpeg /home/batan/*.png /home/batan/*.gif /home/batan/*.svg /home/batan/*.bmp /home/batan/*.webp /home/batan/*.ico /home/batan/*.tiff /home/batan/Pictures >/dev/null 2>&1
+        mv /home/batan/*.pdf /home/batan/*.docx /home/batan/*.txt /home/batan/*.xls /home/batan/*.xlsx /home/batan/*.ppt /home/batan/*.rtf /home/batan/*.odt /home/batan/*.ods /home/batan/Documents >/dev/null 2>&1
+        mv /home/batan/*.mp4 /home/batan/*.mkv /home/batan/*.avi /home/batan/*.mov /home/batan/*.flv /home/batan/*.webm /home/batan/*.wmv /home/batan/Videos >/dev/null 2>&1
+        mv /home/batan/*.mp3 /home/batan/*.wav /home/batan/*.flac /home/batan/*.aac /home/batan/*.ogg /home/batan/*.m4a /home/batan/Music >/dev/null 2>&1
+        mv /home/batan/*.zip /home/batan/*.rar /home/batan/*.7z /home/batan/*.tar /home/batan/*.gz /home/batan/*.iso /home/batan/Archives >/dev/null 2>&1
+        mv /home/batan/*.py /home/batan/*.js /home/batan/*.html /home/batan/*.css /home/batan/*.json /home/batan/*.java /home/batan/*.cpp /home/batan/*.rb /home/batan/*.php /home/batan/Coding >/dev/null 2>&1
+        mv /home/batan/*.exe /home/batan/*.msi /home/batan/*.dmg /home/batan/*.pkg /home/batan/*.deb /home/batan/Installation_Files >/dev/null 2>&1
+        mv /home/batan/*.epub /home/batan/*.mobi /home/batan/*.azw /home/batan/*.pdf /home/batan/E-Books >/dev/null 2>&1
+        mv /home/batan/*.ttf /home/batan/*.otf /home/batan/*.woff /home/batan/*.eot /home/batan/Fonts >/dev/null 2>&1
+        mv /home/batan/*.cfg /home/batan/*.ini /home/batan/*.yaml /home/batan/Configurations >/dev/null 2>&1
+    }
+
+    remove_from_home() {
+        sudo trash /home/batan/.*.part >/dev/null 2>&1
+        sudo trash /home/batan/*.part >/dev/null 2>&1
+        sudo trash /home/batan/*.ytl >/dev/null 2>&1
+        sudo trash /home/batan/.*.ytl >/dev/null 2>&1
+        sudo trash /home/batan/*.ytdl >/dev/null 2>&1
+        sudo trash /home/batan/.*.ytdl >/dev/null 2>&1
+        sudo trash /home/batan/*.log >/dev/null 2>&1
+        sudo trash /home/batan/*.out >/dev/null 2>&1
+        sudo trash /home/batan/*.obj >/dev/null 2>&1
+        sudo trash /home/batan/*.fbx >/dev/null 2>&1
+        sudo trash /home/batan/*.stl >/dev/null 2>&1
+        sudo trash /home/batan/*.dae >/dev/null 2>&1
+        sudo trash /home/batan/*.ai >/dev/null 2>&1
+        sudo trash /home/batan/*.eps >/dev/null 2>&1
+        sudo trash /home/batan/*.svg >/dev/null 2>&1
+        sudo trash /home/batan/*.cdr >/dev/null 2>&1
+        sudo trash /home/batan/*.db >/dev/null 2>&1
+        sudo trash /home/batan/*.sqlite >/dev/null 2>&1
+        sudo trash /home/batan/*.sql >/dev/null 2>&1
+        sudo trash /home/batan/*.mdb >/dev/null 2>&1
+        sudo trash /home/batan/.*.log >/dev/null 2>&1
+        sudo trash /home/batan/.*.out >/dev/null 2>&1
+        sudo trash /home/batan/.*.obj >/dev/null 2>&1
+        sudo trash /home/batan/.*.fbx >/dev/null 2>&1
+        sudo trash /home/batan/.*.stl >/dev/null 2>&1
+        sudo trash /home/batan/.*.dae >/dev/null 2>&1
+        sudo trash /home/batan/.*.ai >/dev/null 2>&1
+        sudo trash /home/batan/.*.eps >/dev/null 2>&1
+        sudo trash /home/batan/.*.svg >/dev/null 2>&1
+        sudo trash /home/batan/.*.cdr >/dev/null 2>&1
+        sudo trash /home/batan/.*.db >/dev/null 2>&1
+        sudo trash /home/batan/.*.sqlite >/dev/null 2>&1
+        sudo trash /home/batan/.*.sql >/dev/null 2>&1
+        sudo trash /home/batan/.*.mdb >/dev/null 2>&1
+        sudo trash /home/batan/.*.bak >/dev/null 2>&1
+        sudo trash /home/batan/*.bak >/dev/null 2>&1
+        sudo trash /home/batan/.*.org >/dev/null 2>&1
+        sudo trash /home/batan/*.org >/dev/null 2>&1
+
+    }
+
+    chk_sub_dir
+    check_for_bash_scripts
+    check_for_wiki
+    mv_to_sub_dir
+    remove_from_home
+
+}
+#}}} <#1217
+#{{{ >>>   lcmenu >#1218
+clear
+lcmenu() {
+    echo -e "\033[42m\033[37mPlease define the options\033[0m ..."
+    read -e -p "   Enter the command to execute [[ options=($(ls)) ]] or type individually space seperated while closing the bracets:" -i "options=(" xxx
+    options=($xxx)
+    selected=0
+    total=${#options[@]}
+    MAX_DISPLAY=10
+    start_index=0
+    COUNTER="25"
+    # Decorations
+    HS="\033[32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+
+    function show_menu() {
+        clear
+        tput cup 5 0
+        echo -e "$HS"
+        for ((i = 0; i < MAX_DISPLAY; i++)); do
+            idx=$((start_index + i))
+            if [[ $idx -ge $total ]]; then
+                break
+            fi
+            if [[ $idx -eq $selected ]]; then
+                echo -e "\e[1m\e[32m ->  ${options[$idx]}\e[0m"
+            else
+                echo "    ${options[$idx]}"
+            fi
+        done
+        echo -e "$HS"
+        tput cup 25 0
+        echo -e "\033[32m$input\033[0m"
+    }
+
+    while true; do
+        show_menu
+        read -rsn3 key
+
+        case $key in
+            $'\e[A')  # Up arrow key
+                if ((selected > 0)); then
+                    ((selected--))
+                else
+                    selected=$((total - 1))
+                    start_index=$((total > MAX_DISPLAY ? total - MAX_DISPLAY : 0))
+                fi
+                if ((selected < start_index)); then
+                    ((start_index--))
+                fi
+                ;;
+
+            $'\e[B')  # Down arrow key
+                if ((selected < total - 1)); then
+                    ((selected++))
+                else
+                    selected=0
+                    start_index=0
+                fi
+                if ((selected >= start_index + MAX_DISPLAY)); then
+                    ((start_index++))
+                fi
+                ;;
+            '')  # Enter key
+                clear
+                echo "You selected: ${options[$selected]}"
+                if [[ -z ${options[$selected]} ]]; then
+                    break 0
+                fi
+                ((COUNTER++))
+                input="$input 'task add ${options[$selected]} project:Installation due:$(date +%Y-%m-%d)T23:30:00'\n"
+                #            read -rsn1 -p "Press any key to continue..."
+                ;;
+        esac
+    done
+    runuser -u batan -- $input
+
+}
+
+#===================================================================================
+#}}} <#1297
+#{{{ >>>   block_hosts >#1298
+block_hosts() {
+		HOS1="/etc/hosts"
+		HOS2="/etc/hosts.2"
+		HOS3="/etc/hosts.3"
+		SIGN_FILE="/home/batan/.lc-sign"
+		blocked_domains=$(( $(cat /etc/hosts|grep "0.0.0.0"|wc -l) - 1 )) 
+		unblock_lc-sign() {
+		sed -i 's/lc-sign-1//g' /home/batan/.lc-sign
+	}
+
+		clear
+
+# Ensure .lc-sign exists before reading
+if [[ ! -f "$SIGN_FILE" ]]; then
+	touch "$SIGN_FILE"
+fi
+BLOCKING=$(grep "lc-sign-1" "$SIGN_FILE"|sort -u)
+
+check_hosts() {
+	# Check if hosts.2 exists
+	if [[ ! -f "$HOS2" ]]; then
+		echo -e "\033[32mGetting the hosts file...\033[0m"
+		git clone https://github.com/batann/host.git /tmp/host_repo > /dev/null 2>&1
+		if [[ $? -ne 0 ]]; then
+			echo -e "\033[31mFailed to fetch hosts file from repository.\033[0m"
+			exit 1
+		fi
+		cat "$HOS1" >> /tmp/host_repo/hosts
+		sudo mv /tmp/host_repo/hosts "$HOS2"
+		rm -rf /tmp/host_repo
+		echo -e "\033[32mHosts file setup complete.\033[0m"
+	fi
+}
+
+block_hosts() {
+	if [[ "$BLOCKING" == "lc-sign-1" ]]; then
+		echo -e "\033[31mYou are already blocking with the hosts file...\033[0m"
+	else
+		sudo cp "$HOS1" "$HOS3"
+		sudo cp "$HOS2" "$HOS1"
+		sudo mv "$HOS3" "$HOS2"
+		echo "lc-sign-1" >> "$SIGN_FILE"
+		echo -e "\033[32mBlocking enabled.\033[0m"
+	fi
+}
+
+unblock_hosts() {
+	if [[ "$BLOCKING" != "lc-sign-1" ]]; then
+		echo -e "\033[31mYou are not blocking with the hosts file...\033[0m"
+	else
+		sudo cp "$HOS1" "$HOS3"
+		sudo cp "$HOS2" "$HOS1"
+		sudo mv "$HOS3" "$HOS2"
+		sed -i '/lc-sign-1/d' "$SIGN_FILE"
+		echo -e "\033[34mCurrently blocked domains \033[32m$blocked_domains\033[0"
+		echo -e "\033[34m═══════════════════════════════════════════\033[0m"
+		echo -e "\033[1;37mBlocking disabled.\033[0m"
+	fi
+}
+
+# Main Script
+clear
+check_hosts
+echo -e "\033[32mDo you want to block with the hosts file? (y/n)\033[0m"
+read -p ">> " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+	block_hosts
+else
+	unblock_hosts
+fi
+
+clear
+echo -e "\033[32mScript executed successfully.\033[0m"
+if [[ "$BLOCKING" == "lc-sign-1" ]]; then
+		echo -e "\033[34mCurrently blocked domains \033[32m$blocked_domains\033[0"
+		echo -e "\033[34m═══════════════════════════════════════════\033[0m"
+	echo -e "\033[1;37mYou are blocking with the hosts file.\033[0m"
+else
+		echo -e "\033[34mCurrently blocked domains \033[32m$blocked_domains\033[0"
+		echo -e "\033[34m═══════════════════════════════════════════\033[0m"
+	echo -e "\033[1;37mYou are not blocking with the hosts file.\033[0m"
+fi
+}
+
+
+#}}} <#1385
+#{{{ >>>   Create json incl Dir,Files and their content >#1386
+create_json(){
+
+OUTPUT_FILE="home_structure.json"
+
+# Function to recursively generate JSON from a directory
+generate_json() {
+  local dir="$1"
+  local indent="$2"
+  local first=1
+
+  echo "{"
+  for entry in "$dir"/* "$dir"/.*; do
+    [ "$(basename "$entry")" = "." ] || [ "$(basename "$entry")" = ".." ] && continue
+    [ "$first" -eq 0 ] && echo ","
+    first=0
+    name=$(basename "$entry")
+    if [ -d "$entry" ]; then
+      echo -n "$indent\"$name\": "
+      generate_json "$entry" "$indent  "
+    elif [ -f "$entry" ]; then
+      content=$(jq -Rs '.' < "$entry") # Read file content safely for JSON
+      echo -n "$indent\"$name\": $content"
+    fi
+  done
+  echo -e "\n$indent}"
+}
+
+# Prompt user to select files and directories
+echo "Select files and directories to include in the JSON (space-separated):"
+read -rp "Example: .bashrc .bash_aliases .vim .task: " USER_SELECTION
+
+# Construct JSON structure
+echo '{ "home": {' > "$OUTPUT_FILE"
+
+first=1
+for item in $USER_SELECTION; do
+  [ "$first" -eq 0 ] && echo "," >> "$OUTPUT_FILE"
+  first=0
+  if [ -d "$HOME/$item" ]; then
+    echo -n "  \"$item\": " >> "$OUTPUT_FILE"
+    generate_json "$HOME/$item" "    " >> "$OUTPUT_FILE"
+  elif [ -f "$HOME/$item" ]; then
+    content=$(jq -Rs '.' < "$HOME/$item")
+    echo "  \"$item\": $content" >> "$OUTPUT_FILE"
+  fi
+done
+
+# Automatically add .config with all contents
+echo "," >> "$OUTPUT_FILE"
+echo -n "  \".config\": " >> "$OUTPUT_FILE"
+generate_json "$HOME/.config" "    " >> "$OUTPUT_FILE"
+
+echo -e "\n}}" >> "$OUTPUT_FILE"
+
+echo "JSON file saved as $OUTPUT_FILE"
+
+
+
+}
+
+
+#}}} <#1448
+#{{{ >>>   lc-clipboard background run >#1449
+lc-clipboard() {
+DIR_BASE="/home/batan/.config/lc-clipboard"
+inter_count="10" #used for countdown and full circle intervals, not applied ATM
+count="1"
+	
+move_register() {
+	   cat /home/batan/.config/lc-clipboard/register9|grep "http" >> /home/batan/.config/lc-clipboard/auto.register.md 2>/dev/null
+		rm -f $DIR_BASE/register9 2>/dev/null 
+		mv $DIR_BASE/register8 $DIR_BASE/register9 2>/dev/null 
+		mv $DIR_BASE/register7 $DIR_BASE/register8 2>/dev/null
+		mv $DIR_BASE/register6 $DIR_BASE/register7 2>/dev/null
+		mv $DIR_BASE/register5 $DIR_BASE/register6 2>/dev/null
+		mv $DIR_BASE/register4 $DIR_BASE/register5 2>/dev/null
+		mv $DIR_BASE/register3 $DIR_BASE/register4 2>/dev/null
+		mv $DIR_BASE/register2 $DIR_BASE/register3 2>/dev/null
+		mv $DIR_BASE/register1 $DIR_BASE/register2 2>/dev/null
+		touch $DIR_BASE/register1
+}
+
+
+
+
+# Set a trap for SIGINT (Ctrl+C)
+#trap 'echo "Caught Ctrl+C! Breaking the loop..."; break' SIGINT
+
+
+							# Start Listening
+					previous_clipboard=""
+							#Listen for clipboard changes
+while true; 
+do
+							# Get current clipboard content
+    				current_clipboard=$(xclip -o -selection clipboard)
+							# Check if clipboard content has changed
+    				if [[ "$current_clipboard" != "$previous_clipboard" ]]; then
+    					   # move registry one up and create blank registry 1
+					move_register
+
+						   # Append clipboard content to file1
+        			echo "$current_clipboard" >> /home/batan/.config/lc-clipboard/register1
+					       	# Update previous clipboard content
+        			previous_clipboard="$current_clipboard"
+    				fi
+					   		# Sleep for a short duration to avoid high CPU usage
+    				sleep 0.1
+				done
+			}
+#}}} <#1497
+#{{{ >>>   megasync >#1498
+
+mga() {
+
+    if [[ "$1" == "--search" || "$1" == "-s" ]]; then
+        aa=$(megals|grep $2 2>/dev/null)
+        menu echo $aa
+        move_register
+        echo -e $xxx >> /home/batan/.config/lc-clipboard/register1
+        echo -e $xxx|xclip -selection clipboard
+        megaget $xxx
+    
+    elif [[ "$1" == "--help" || "$1" == "-h" ]]; then
+        echo -e "\033[32mFor now: \n
+        --search -s   \n
+        --list   -l   \n
+        --help   -h   \n\033[0m"
+    
+    elif [[ "$1" == "--list" || "$1" == "-l" ]]; then
+        MGA=$(megals|sed 's/\/Root\///g'|grep -vE "Inbox|Contac|12982tutan")
+        menu echo $MGA
+    elif [[ "$1" == "--make" || "$1" == "-m" ]]; then
+        megamkdir $1
+    fi
+
+}
+
+#}}} <#1525
+#{{{ >>>   lcucare >#1526
+lcucare() {
+	#!/usr/bin/sudo /bin/bash
+set -e
+
+#Variables
+HH="\033[37m┋┋┋\033[0m"
+GREEN="\e[32m"
+CYAN="\e[36m"
+MAGENTA="\e[35m"
+YELLOW="\e[33m"
+ENDCOLOR="\e[0m"
+DIST_CODENAME=$(lsb_release --codename | cut -f2)
+DATE=$(date +%F_%T)
+UCARE_VERSION="24.12.11"
+PREV_VER="24.11"
+USERNAME=$(logname 2>/dev/null || echo $USER)
+# Checking if the user has run the script with "sudo" or not
+if [[ $EUID -ne 0 ]] ; then
+    clear
+    echo ""
+    echo -e "${YELLOW} uCareSystem must be run as root or with sudo. ${ENDCOLOR}"
+    echo -e "${YELLOW} Now I will just exit... ${ENDCOLOR}" 1>&2
+    echo ""
+    sleep 2
+fi
+# Function to check internet connectivity
+function CHECK_INTERNET {
+    if curl -4 -s --head http://archive.ubuntu.com | head -n 1 | grep "200 OK" > /dev/null; then
+        return 0  # Internet connection is available
+    else
+        return 1  # No internet connection
+    fi
+}
+# Check internet connectivity
+if ! CHECK_INTERNET; then
+   echo -e "${YELLOW} No internet connection detected... ${ENDCOLOR}"
+   sleep 1
+   echo "Please ensure that your system is connected to the internet,"
+   echo "and then try again..."
+   echo "Now I will just exit..."1>&2
+   echo ""
+   sleep 2
+   exit 1
+fi
+
+# Simple countdown function
+function COUNTDOWN {
+    	secs=$1
+	while [ $secs -gt 0 ]; do
+		echo -ne "$MESSAGE in ${YELLOW}$secs ${ENDCOLOR}seconds... (to exit now, press Ctrl+C) \r"
+		sleep 1
+		: $((secs--))
+	done
+
+}
+duration=5 # countdown duration in seconds
+
+function WELCOME_SCREEN {
+	echo ""
+	echo -e "\033[32m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\033[0m"
+	echo -e "           $HH ${CYAN} LC-ystem-care $UCARE_VERSION ${ENDCOLOR} $HH"
+	echo -e "                 \033[32m┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅\033[0m "
+	echo "  Welcome to all-in-one System Update and maintenance app"
+	echo ""
+	echo " 	  Dear $USERNAME"
+	echo "  We hope you are enjoying the app, blah blah blah"
+	echo " blah blah blah some more text about god and the world"
+	echo " at large"
+	echo ""
+	echo " You should consider doneting money, crypto currency or"
+	echo " anything else of value that you happen to have sitting"
+	echo " around."
+	echo ""
+	echo ""
+	echo -e "${CYAN}$DONATE ${ENDCOLOR}"
+	echo -e "\033[32m┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\033[0m"
+	echo
+	# start the countdown
+	MESSAGE="uCareSystem will start"
+	COUNTDOWN $duration
+}
+
+function MAINTENANCE {
+	echo
+	echo
+	echo -e "${MAGENTA} Started ${ENDCOLOR} "
+	sleep 1
+	echo
+	echo -e " ${GREEN} Checking Disk usage before System Maintenance ${ENDCOLOR}"
+	sleep 1
+	echo
+	df_output=$(df -h / | awk 'NR==2 {print "Percentage of disk space used:", $5, "\nFree space available:", $4}')
+	echo ""
+	echo -e "${YELLOW}$df_output ${ENDCOLOR}"
+	echo
+	sleep 1
+
+	# The following is for when the unit file, source configuration file or drop-ins
+	# of apt-news.service changed on disk and systemd wasn't aware of it.
+	if command -v systemctl &> /dev/null; then
+		echo -e "${YELLOW}Reloading systemd manager configuration ${ENDCOLOR}"
+		sudo systemctl daemon-reload
+		sleep 1
+		echo
+	fi
+	## Updates package lists
+	echo -e "${GREEN} Updating package lists ${ENDCOLOR}"
+	echo
+	# Update package lists and filter out warnings
+	sudo apt update 2> >(sed 's/^WARNING.*//') |
+	# Print each line with padding to fit the terminal width
+	xargs -I{} printf '%-*s\r' $(tput cols) "{}" && echo
+	echo -e "${YELLOW}Here are the packages that can be upgraded if they are not kept back due to phased releases: ${ENDCOLOR}"
+	sleep 1
+	sudo apt list --upgradable;
+	echo
+	echo -e "${GREEN} Finished updating package lists ${ENDCOLOR}"
+	sleep 1
+	echo
+
+	## Updates packages and libraries
+	sudo apt full-upgrade -V -y;
+	echo
+	echo -e "${GREEN} Finished upgrading system packages and libraries ${ENDCOLOR}"
+	sleep 1
+	echo
+
+	## Removes unneeded packages
+	sudo apt autoremove -y --purge;
+	echo
+	echo -e "${GREEN} Finished removing unneeded packages ${ENDCOLOR}"
+	sleep 1
+	echo
+	echo -e "${GREEN} Checking for Snap and Flatpak updates ${ENDCOLOR}"
+	echo
+	# Check if Snap is installed
+	if command -v snap &> /dev/null; then
+	# Stop all running Snap applications
+		echo -e "${YELLOW}Stopping all running Snap applications... ${ENDCOLOR}"
+		stopped_snaps=()
+		while IFS= read -r snapname; do
+			if sudo snap stop "$snapname" &>/dev/null; then
+				stopped_snaps+=("$snapname")
+			fi
+		done < <(sudo snap list | awk '/^name/ {next} {print $1}')
+
+		# Print the names of stopped Snap applications
+		if [ ${#stopped_snaps[@]} -gt 0 ]; then
+			echo -e "${YELLOW}Stopped Snap applications: ${ENDCOLOR}"
+			for snapname in "${stopped_snaps[@]}"; do
+				echo "$snapname"
+			done
+			# Check for updates and install them
+			echo -e "${YELLOW}Checking for Snap package updates and installing them... ${ENDCOLOR}"
+			echo
+			sudo snap refresh
+
+			# Remove old revisions of Snap packages
+			echo
+			echo -e "${YELLOW}Removing old revisions of Snap packages ${ENDCOLOR}"
+			echo
+			LANG=C sudo snap list --all | awk '/disabled/{print $1, $3}' |
+				while read snapname revision; do
+					sudo snap remove --purge "$snapname" --revision="$revision"
+				done
+
+			echo -e "${YELLOW}Old revisions of Snap packages removed successfully. ${ENDCOLOR}"
+			sleep 1
+			# Start previously stopped Snap applications
+			echo
+			echo -e "${YELLOW}Starting previously stopped Snap applications... ${ENDCOLOR}"
+			for snapname in "${stopped_snaps[@]}"; do
+				sudo snap start "$snapname" &>/dev/null
+			done
+		else
+			echo -e "${YELLOW}No Snap applications were stopped. ${ENDCOLOR}"
+		fi
+
+	else
+		echo
+		echo -e "${YELLOW}Snap is not available on this system. Skipping. ${ENDCOLOR}"
+		sleep 1
+	fi
+	# Check if flatpak is installed then start maintenance
+	if command -v flatpak &>/dev/null; then
+		echo ""
+		echo -e "${YELLOW}Checking for Flatpak package updates and installing them...  ${ENDCOLOR}"
+		sleep 1
+		sudo flatpak update -y
+		echo ""
+		echo -e "${YELLOW}Removing unused Flatpak packages ${ENDCOLOR}"
+		sudo flatpak uninstall --unused -y
+		sleep 1
+		echo
+	else
+		echo ""
+		echo -e "${YELLOW}Flatpak is not available on this system. Skipping. ${ENDCOLOR}"
+		sleep 1
+	fi
+	echo
+	echo -e "${GREEN} Finished Snap and/or Flatpak package maintenance ${ENDCOLOR}"
+	sleep 1
+	echo
+
+	# purge-old-kernels - remove old kernel packages
+	#    Copyright (C) 2012 Dustin Kirkland <kirkland -(at)- ubuntu.com>
+	#
+	#    Authors: Dustin Kirkland <kirkland-(at)-ubuntu.com>
+	#             Kees Cook <kees-(at)-ubuntu.com>
+	#
+	# NOTE: This script will ALWAYS keep the currently running kernel
+	# NOTE: Default is to keep 2 more, user overrides with --keep N
+	KEEP=2
+	# NOTE: Any unrecognized option will be passed straight through to apt
+	APT_OPTS=
+	while [ ! -z "$1" ]; do
+		case "$1" in
+			--keep)
+				# User specified the number of kernels to keep
+				KEEP="$2"
+				shift 2
+			;;
+			*)
+				APT_OPTS="$APT_OPTS $1"
+				shift 1
+			;;
+		esac
+	done
+
+	# Build our list of kernel packages to purge
+	CANDIDATES=$(ls -tr /boot/vmlinuz-* | head -n -${KEEP} | grep -v "$(uname -r)$" | cut -d- -f2- | awk '{print "linux-image-" $0 " linux-headers-" $0}' )
+	for c in $CANDIDATES; do
+		dpkg-query -s "$c" >/dev/null 2>&1 && PURGE="$PURGE $c"
+	done
+
+	if [ -z "$PURGE" ]; then
+		echo -e  "${YELLOW}No kernels are eligible for removal ${ENDCOLOR}"
+	fi
+
+	sudo apt $APT_OPTS remove -y --purge $PURGE;
+
+	echo
+	echo -e "${GREEN} Finished removing old kernels ${ENDCOLOR}"
+	sleep 1
+	echo
+	## Removes unused config files of uninstalled packages
+	dpkg --get-selections | grep deinstall | cut -f1 | xargs sudo apt autoremove -y --purge;
+	echo
+	echo -e "${GREEN} Finished removing the config files of uninstalled packages ${ENDCOLOR}"
+	sleep 1
+	echo
+
+	## Removes package files that can no longer be downloaded and everything except
+	# the lock file in /var/cache/apt/archives, including directories.
+	sudo apt autoclean -y; sudo apt clean -y;
+	echo
+	echo -e "${GREEN} Finished cleaning up downloaded packages ${ENDCOLOR}"
+	sleep 1
+
+	echo
+	echo -e "${GREEN} Checking to see if a reboot is required ${ENDCOLOR}"
+	## Check to see if a reboot is required
+	if [ -f /var/run/reboot-required ]; then
+ 		echo
+  		echo -e "${MAGENTA}* * * * * * * * * * * * * * * * * *${ENDCOLOR}"
+ 		echo -e "${MAGENTA}*${ENDCOLOR} 	Dear $USERNAME"
+  		echo -e "${MAGENTA}*${ENDCOLOR}"
+ 		echo -e "${MAGENTA}*${ENDCOLOR}  Consider rebooting your system"
+  		echo -e "${MAGENTA}*${ENDCOLOR}  to finish applying updates"
+  		echo -e "${MAGENTA}*${ENDCOLOR}  requested by the following"
+		echo -e "${MAGENTA}*${ENDCOLOR}  packages:"
+  		echo -e "${MAGENTA}*${ENDCOLOR} "
+		if [ -f /var/run/reboot-required.pkgs ]; then
+        	cat /var/run/reboot-required.pkgs | uniq
+			echo -e "${MAGENTA}* * * * * * * * * * * * * * * * * *${ENDCOLOR}"
+    	else
+        	echo -e "${YELLOW}Cannot find the list of packages... Skipping ${ENDCOLOR}"
+    	fi
+		sleep 1
+	else
+		echo
+		echo -e "${YELLOW}  No reboot is required at this time...  ${ENDCOLOR}"
+		echo -e "${YELLOW}  Happy to be $(uptime -p) ${ENDCOLOR}"
+		echo -e "${YELLOW}  and serve you since $(uptime -s)... ${ENDCOLOR}"
+		echo -e "${YELLOW}  ... ${ENDCOLOR}"
+		echo
+		sleep 1
+	fi
+	sleep 1
+	echo
+	echo -e "${GREEN} Checking Disk usage after System Maintenance ${ENDCOLOR}"
+	echo
+	df_output=$(df -h / | awk 'NR==2 {print "Percentage of disk space used:", $5, "\nFree space available:", $4}')
+	echo -e "${YELLOW}$df_output ${ENDCOLOR}"
+	echo
+	sleep 1
+
+}
+
+
+
+function UPGRADE_EOL_TO_NEXT {
+
+	cp "/etc/apt/sources.list" "/etc/apt/sources.eol_${DATE}"
+	cat <<EOT > /etc/apt/sources.list
+deb http://old-releases.ubuntu.com/ubuntu/ $DIST_CODENAME main restricted universe multiverse
+deb http://old-releases.ubuntu.com/ubuntu/ $DIST_CODENAME-updates main restricted universe multiverse
+deb http://old-releases.ubuntu.com/ubuntu/ $DIST_CODENAME-security main restricted universe multiverse
+
+EOT
+
+sudo apt install update-manager-core
+sudo apt dist-upgrade -y
+sudo do-release-upgrade
+}
+
+function UPGRADE_TO_NEXT_RELEASE {
+	sleep 1
+	echo "##########################################"
+	echo "LC-System-clean will now check for the"
+	echo "availability of the next version"
+	echo "and it will start the upgrade"
+	echo "##########################################"
+	echo ""
+	sleep 1
+	do-release-upgrade
+	sleep 2
+}
+
+function UPGRADE_TO_DEVEL_RELEASE {
+	sleep 1
+	echo "##########################################"
+	echo "uCareSystem will now check for the"
+	echo "availability of the next development"
+	echo "version and it will start the upgrade"
+	echo "##########################################"
+	echo ""
+	sleep 1
+	do-release-upgrade -d
+	sleep 2
+}
+
+function SHOW_HELP {
+	cat << EOF
+
+				     uCareSystem
+				    ~ $UCARE_VERSION ~
+		     All-in-one system update and maintenance app
+
+	Usage: sudo ucaresystem-core <option>
+
+		If no option is specified, it performs the regular maintenance tasks.
+		It updates system, snap, and flatpak packages, removes old kernels, old
+		Snap and flatpack revisions and unneeded packages, and cleans up
+		configurations of uninstalled packages.
+
+	Options:
+
+		 -h --help         Display this help and exit
+
+		 -u --upgrade      Upgrade to the next release. Note: If you use a
+		                   regular release it will upgrade to the next one. If
+		                   you are on a LTS version, it will upgrade only to
+		                   the next LTS.
+
+		 -d --development  Upgrade to the next development release
+
+		 -eol --end-of-life-upgrade
+				   CAUTION: Do not use this if your Ubuntu has not
+			  	   reached its End of life support.
+			           Check https://wiki.ubuntu.com/Releases
+			           This option is ONLY for Ubuntu releases that have
+			           reached their EOL and you want to upgrade
+			           it to the next supported version.
+
+		 -r --reboot       Reboot the system, after completing all the tasks,
+
+		 -s --shutdown     Shutdown the system, after completing all the tasks,
+
+EOF
+}
+
+function GOODBYE {
+	sleep 1
+	echo -e "\033[32m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\033[0m"
+	echo -e "\033[32m┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\033[0m"
+	echo -e "            \033[32m┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅\033[0m "
+	echo ""
+	echo -e "           $HH ${CYAN} uCareSystem $UCARE_VERSION ${ENDCOLOR} $HH"
+	echo -e "            \033[32m┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅\033[0m "
+	echo ""
+	echo ""
+	echo ""
+	echo ""
+	echo ""
+	echo ""
+	echo " Dear $USERNAME, "
+	echo "	have a nice and undisturbed day...."
+	echo "	"
+	echo "	A man is a man"
+	echo "	Legend is a legend."
+	echo ""
+	echo ""
+	echo ""
+	echo ""
+	echo ""
+	echo ""
+	echo -e "${CYAN}$DONATE ${ENDCOLOR}"
+	echo ""
+	sleep 2
+	echo -e "     	${MAGENTA}All maintenance Complete... GOODBYE${ENDCOLOR}"
+	echo -e "\033[32m┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\033[0m"
+	echo
+	sleep 1
+}
+
+function SHUT_DOWN {
+	sleep 1
+	echo
+	echo
+	echo -e "${GREEN} Shutting down as you requested ${ENDCOLOR}"
+	echo
+	MESSAGE="Shutting down..."
+	COUNTDOWN $duration
+	if command -v systemctl &> /dev/null; then
+		sudo systemctl poweroff
+	else
+		sudo poweroff
+	fi
+}
+
+function RE_BOOT {
+	sleep 1
+	echo
+	echo
+	echo -e "${GREEN} Rebooting as you requested ${ENDCOLOR}"
+	echo
+	MESSAGE="Rebooting..."
+	COUNTDOWN $duration
+	if command -v systemctl &> /dev/null; then
+		sudo systemctl reboot
+	else
+		sudo reboot
+	fi
+
+	sudo reboot
+	## End of script
+}
+function shred_cache_png() {
+echo "shredding"
+find .cache/thumbnails -type f -name "*.png" -exec shred -z -f -n1 {} + \;
+}
+
+function remove_cache() {
+rm -rf /home/batan/.cache/*
+}
+
+# The main process starts
+while [ "$1" != "" ]; do
+    case $1 in
+
+		-lc | --lcclean ) 
+			PNGCACHE=$(find /home/batan/.cache/thumbnails -type f -name "*.png"|wc -l)
+			notify-send -t 15000 "Working on the following:" "<span color='Yellow' font='24px'>Removing $PNGCACHE pngs from cache\nDropping caches 3\nSwap off/on</span>"
+			find ~/.cache/thumbnails -type f -name "*.png" -exec rm -rf {} \;
+			rm -r /home/batan/.cache/mozilla/firefox/*
+			sudo systemctl -w vm.drop_caches=3
+			sudo swapoff -a
+			sudo swapon -a
+			lcucare
+			;;
+        -u | --upgrade )     WELCOME_SCREEN && MAINTENANCE && UPGRADE_TO_NEXT_RELEASE
+                             exit
+                                ;;
+        -d | --development ) WELCOME_SCREEN && MAINTENANCE && UPGRADE_TO_DEVEL_RELEASE
+                             exit
+                                ;;
+        -h | --help )        SHOW_HELP
+                             exit
+                                ;;
+        -eol | --end-of-life-upgrade ) UPGRADE_EOL_TO_NEXT
+                             exit
+                                ;;
+	-s | --shutdown )	 WELCOME_SCREEN && MAINTENANCE && GOODBYE && SHUT_DOWN
+							 exit
+							    ;;
+	-r | --reboot )		 WELCOME_SCREEN && MAINTENANCE && GOODBYE && RE_BOOT
+							 exit
+							    ;;
+        * )                  SHOW_HELP
+                             exit 1
+    esac
+done
+## If no parameter is given just do the regular maintenance
+WELCOME_SCREEN && MAINTENANCE && GOODBYE
+}
+#}}} <#2023
+#{{{ >>>   get_location >#2024
+get_location() {
+json=$(curl https://ipinfo.io -s)
+for key in city region country; do
+    echo -n "$key: "
+    echo $json | jq .$key
+done
+}
+
+#}}} <#2033
+#{{{ >>>   lchistory >#2034
+lchistory() {
+cat /home/batan/.config/lists/commands.md |grep "$1" >> xclip -selection clipboard
+cat /home/batan/.config/lists/commands.md |grep "$1"
+
+}
+#}}} <#2040
+#{{{ >>>   lc-backup-browser-history >#2041
+lc-backup-browser-history() {
+	browser-history -b firefox -t history |grep "https"|sed 's!.*http!http!g'|sed 's![,].*$!!g' >> /home/batan/.config/lists/firefox-history.md
+    cat /home/batan/.config/lists/firefox-history.md |sort -u >> tempor
+    rm -f /home/batan/.config/lists/firefox-history.md
+    cat tempor >> /home/batan/.config/lists/firefox-history.md
+    rm -f tempor
+}
+#}}} <#2079
+#{{{ >>>   lc-backup_bashhistory
+	lc-backup_bashhistory() {
+	if [[ -f /home/batan/.bash_history* ]]; then
+		cat /home/batan/.bash_history* >> BASHH
+		rm /home/batan/.bash_history*
+		cat /home/batan/.lcconfig/lists/commands.txt >> BASHH
+		rm /home/batan/.lcconfig/lists/commands.txt 
+		cat BASHH|sort -u >> /home/batan/.lcconfig/lists/commands.txt 
+		rm BASHH
+	fi
+	megals |grep LCBASHHISTORY 2>/dev/null >/dev/null 2>&1
+	if [[ $? == "0" ]]; then
+			megaget /Root/LCBASHHISTORY 2>/dev/null
+			megarm /Root/LCBASHHISTORY 2>/dev/null
+			cat /home/batan/.lcconfig/lists/commands.txt >> LCBASHHISTORY
+			cat LCBASHHISTORY |sort -u >> BB
+			rm LCBASHHISTORY
+			mv BB LCBASHHISTORY
+		else
+			cat /home/batan/.lcconfig/lists/commands.txt >> LCBASHHISTORY
+	fi
+	megaput LCBASHHISTORY
+	}
+#}}}
+#{{{ >>>   lc-backup-bookmarks
+lc-backupbookmarks() {
+    DEPS_BOOK="pipx "
+    for pack in ${DEPS_BOOK[@]}; do
+        dpkg -s $pack >/dev/null 2>&1
+        if [[ $? == '1' ]]; then
+            echo -e '\033[34mInstalling \033[35m$pack\033[34m...\033[0m'
+            sudo apt-get install -y $pack
+            fi
+            done
+    DEPS_HIST ="browser-history"
+    for pack in ${DEPS_HIST[@]}; do
+        pipx list|grep $pack >/dev/null 2>&1
+        if [[ $? == '1' ]]; then
+            echo -e '\033[34mInstalling \033[35m$pack\033[34m...\033[0m'
+            pipx install $pack
+            fi
+            done
+	
+            if [[ -f /home/batan/.lcconfig/lists/bookmarks.firefox ]]; then
+                browser-history -b firefox -t bookmarks|sed 's/.*http/http/'|sed 's/[,].*$//g' >> /home/batan/.lcconfig/lists/bookmarks.temp
+                cat /home/batan/.lcconfig/lists/bookmarks.firefox >> /home/batan/.lcconfig/lists/bookmarks.temp
+                cat /home/batan/.lcconfig/lists/bookmarks.temp|sort -u >> /home/batan/.lcconfig/lists/bookmarks.firefox
+                rm 	/home/batan/.lcconfig/lists/bookmarks.temp
+                else
+                    browser-history -b firefox -t bookmarks|sed 's/.*http/http/'|sed 's/[,].*$//g' >> /home/batan/.lcconfig/lists/bookmarks.firefox
+                    fi
+                    }
+#}}}
+
+#{{{ >>>   lckeys >#2089
+lckeys() {
+  echo -e "\033[34m───────\033[32m───────\033[33m────────────────────────────────────────────────────────────────\033[0m" 
+  echo -e "$(cat ~/.config/lc-fm/config |grep map|sed 's/^/\\033[34m⟦⟦\\033[37m/g'|sed 's/map /\,/g'|sed 's/ exec /\\033[34m⟧⟧\\033[32m──────\\033[33m❨\\033[37m /g'|sed 's/$/ \\033[33m❩\\033[0m/g')" 
+  echo -e "\033[34m───────\033[32m───────\033[33m────────────────────────────────────────────────────────────────\033[0m"
+}
+#}}} <#2095
+#{{{ >>>   lcfunctions >#2096
+
+lcfunctions() {
+    aaa=$(cat .bashrc .bashrc.aliases .bashrc.navigation|grep "() {"|sed 's/() {//g'|grep -vE "REFRESH|DISPLAY|EXECUTE|#|eXEC|dISP|chk_sub"|sed 's/  //g')
+        menu echo $aaa
+    }
+#}}} <#2102
+#{{{>>>   lcplay >#2103
+
+
+lcplay() {
+    clear
+    BBlue='\e[0;104m'
+    BBlack='\e[0;100m'
+    RRed='\e[0;100m'
+    GGreen='\e[0;100m'
+    YYellow='\e[0;100m'
+    BBlue='\e[0;100m'
+    PPurple='\e[0;100m'
+    CCyan='\e[0;100m'
+    WWhite='\e[0;100m'
+    NC='\033[0m'
+    Black='\033[0;30m'
+    Red='\033[0;31m'
+    Green='\033[0;32m'
+    Blue='\033[0;34m'
+    Purple='\033[0;35m'
+    Cyan='\033[0;36m'
+    Yellow='\033[1;33m'
+    White='\033[1;37m'
+    CCOUNT="0"
+    COU="0"
+	abc="0"
+	MPP="$1"
+	
+
+	get_modifier() {
+aa=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=0 $MPP)
+bb=$(echo $aa|sed 's/\.//g')
+cc="$(( $bb / 50 ))"
+dd="$(echo $cc|rev|cut -c7-12|rev)"
+SLEEP=$dd
+}
+    
+		get_modifier
+       /usr/bin/mpv --no-terminal $MPP 2>/dev/null &
+        pid=$!
+       #tput cup 13 0;tput el;tput cup 13 0;lcfmbottom1
+        while kill -0 $pid 2>/dev/null ; do
+
+        for i in $(seq 26 76); do 
+            tput cup $(( CCOUNT + 14 )) 8
+            echo -e "${White}[[  " 
+            tput cup $(( CCOUNT + 14 )) 14 
+            echo -e "${Green}${abc}%"
+            tput cup $(( CCOUNT + 14 )) 22 
+            echo -e "${White}]]" 
+            tput cup $(( CCOUNT + 14 )) $i 
+            tput setab 20 
+            echo -e '>\033[0m' 
+            sleep $SLEEP
+            ((abc+=1))
+        done
+        tput cup $(( $COU + 3 )) 0
+        echo -e "\033[34m       \033[37m                 \033[0m"
+        tput cup $(( CCOUNT + 14 )) 0 
+        tput el
+        tput cup $(( CCOUNT + 14 )) 0 
+        ((COU++))
+        abc="0"
+ sleep 0.2
+done
+}
+#}}} <#2169
+#{{{ >>>   lcmenu >#2170
+lchmenu() {
+clear && read -p "search term >>>   " abc && menu echo $(browser-history 2>/dev/null |grep "$abc"|sed 's/.*http/http/g'|sed 's/[ ]*//g'|sed 's/[,].*//g')
+}
+#}}} <#2174
+#{{{ >>>   lcprogress >#2175
+lcprogress() {
+
+
+for i in $(seq 26 76); do
+            tput cup $(( CCOUNT + 15 )) 8
+            echo -e "${White}[[  "
+            tput cup $(( CCOUNT + 15 )) 14
+            echo -e "${Green}${abc}%"
+            tput cup $(( CCOUNT + 15 )) 22
+            echo -e "${White}]]"
+            tput cup $(( CCOUNT + 15 )) $i
+            tput setab 20
+            echo -e '>\033[0m'
+            sleep $m1.$m2
+            ((abc+=2))
+((COUNT++))
+done
+}
+#}}} <#2194
+#{{{ >>>   lc2progress >#2195
+
+lc2progress() {
+    clear
+    m1=0
+    m2=0
+ for x in $1; do
+        tput cup $(( $COU + 3 )) 0
+        echo -e "\033[34m ────▶ \033[37m Now Playing ───▶\033[0m"
+        tput cup $(( $COU + 3 )) 26
+        echo -e "\033[33m$x\033[0m"
+        MPP="$x"
+        total_lenght=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 $MPP* |sed 's/\.//')
+        modified=$(( $total_lenght / 50 ))
+        m1=$(echo $modified|cut -c1)
+        m2=$(echo $modified|cut -c2)
+        /usr/bin/mpv --no-terminal $x* 2>/dev/null &
+        pid=$! >/dev/null 2>&1
+        tput cup 4 0;tput el
+
+
+       # while kill -0 $pid /dev/null 2>&1 ; do
+       while :; do
+
+
+        for i in $(seq 26 76); do 
+            tput cup $(( CCOUNT + 4 )) 8
+            echo -e "${White}[[  " 
+            tput cup $(( CCOUNT + 4 )) 14 
+            echo -e "${Green}${abc}%"
+            tput cup $(( CCOUNT + 4 )) 22 
+            echo -e "${White}]]" 
+            tput cup $(( CCOUNT + 4 )) $i 
+            tput setab 20 
+            echo -e '>\033[0m' 
+            sleep $m1.$m2 
+            ((abc+=2))
+        done
+        tput cup $(( $COU + 3 )) 0
+        echo -e "\033[34m       \033[37m                 \033[0m"
+        tput cup $(( CCOUNT + 15 )) 0 
+        tput el
+        tput cup $(( CCOUNT + 15 )) 0 
+        ((COU++))
+        abc="0"
+ sleep 0.2
+done
+    done
+
+}
+#}}} <#2245
+#{{{ >>>   lc-block-adds >#2246
+lc-block-adds() {
+# Code to be used in /usr/local/bin/block-advert.sh
+
+# Improvements to this script:
+# -- Use StevenBlack's unified hosts file ( github.com/StevenBlack/hosts )
+#	 This is what pihole uses by default
+#	 This unifies most of the lists previously present in antiX advert blocker + other useful lists
+# -- Options to select StevenBlack's hosts file extensions
+#	 ie. options to block fakenews, gambling, porn , social media -- can be useful for parental control , content filtering etc.,
+# -- Compress 9 lines in 1 for lesser file size , much lesser number of lines ( about 10x ) and better performance ( as StevenBlack's updateHostsFile.py can do -- https://github.com/StevenBlack/hosts/pull/459)
+# -- Do all work in a random subdirectory of /tmp ( not in /tmp as it was before ) for more security, less clutter and less conflicts
+# -- Show a warning if not running as root / sudo
+# -- Update the welcome message to reflect these
+
+#v0.4 created by sc0ttman, August 2010
+#GPL license /usr/share/doc/legal/gpl-2.0.txt
+#100830 BK added GPL license, amended Exit msg, bug fixes.
+# zenity version by lagopus for antiX, Decemder 2010
+# modified to yad by Dave for antiX, September 2011
+# added sysctl, Jan 2020
+# fix update URL to mvps
+
+# advert blocker
+# downloads a list of known advert servers
+# then appends them to /etc/hosts so that
+# many online adverts are blocked from sight
+
+TEXTDOMAINDIR=/usr/share/locale
+TEXTDOMAIN=block-advert
+
+export title="antiX Advert Blocker"
+
+# the markers used to find the changes in /etc/hosts, which are made by this app
+export markerstart='# BEGIN (below) - IPs added by antiX Advert Blocker #'
+export markerend='# END (above) - IPs added by antiX Advert Blocker #'
+
+# Do all work inside a random subdirectory of /tmp , as many modern apps do for security, less clutter etc.,
+WORKINGDIR=/tmp/antiXadvertblocker.$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 8 ; echo '')
+mkdir $WORKINGDIR
+
+info_text=$"The <b>$title</b> tool adds stuff to your /etc/hosts file, so \n\
+that many advertising servers and websites can't connect to this PC.\n\
+You can choose to block ads, malware, pornography, gambling, fakenews and social media\n\
+Blocking ad servers protects your privacy, saves you bandwidth, greatly \n\
+improves web-browsing speed and makes the internet much less annoying in general.\n\n\
+Do you want to proceed?"
+
+# width of progress dialogs
+WIDTH=360
+
+if [ $(whoami) != root ] ; then
+	yad --image "info" --title "$title" --text=$"<b> Failed </b> \n\n\
+	antiX advert blocker must be run as root or with sudo "
+	exit 1
+fi
+
+# cleanup all leftover files
+function cleanup
+{
+    # remove all temp files
+    rm -rf $WORKINGDIR/*
+}
+
+# concatenate the downloaded files
+# clean out everything but the list of IPs and servers
+function build_blocklist_all
+{
+
+    #echo "====================YTO"
+    # suppress comments anywhere in a line ( not just at the beginning ) , then empty lines, replace tabs by spaces
+    # remove double spaces, remove lines not beginning with "0.0.0.0" ,
+    # suppress \r at end of line
+    # then sort unique by field 2 (url)
+    cat $WORKINGDIR/blocklist{1,2,3,4,5} | sed 's:#.*$::g' | \
+                               sed '/^$/d' | \
+                               sed 's/[\t]/ /g' | \
+                               sed 's/  / /g' | \
+                               sed -n '/^["0\.0\.0\.0"]/p' | \
+                               tr -d '\015' | \
+                               sort -u -k 2 \
+                               > $WORKINGDIR/blocklist-all
+    #echo "====================YTO"
+
+    # Compress 9 lines into 1
+    # This is taken from StevenBlack's updateHostsFile.py
+    # This will decrease file size , decrease number of lines drastically ( about 10x ) and increase performance
+    # Writing it in bash seems too slow. So, we use python, which is faster here
+	cat << EndOfFile > $WORKINGDIR/compress.py
+#!/usr/bin/python3
+import subprocess
+import os
+
+f = open( "$WORKINGDIR/blocklist-all" , "r+" )
+f.seek(0)  # reset file pointer
+
+target_ip = "0.0.0.0"
+target_ip_len = len(target_ip)
+lines = [target_ip]
+lines_index = 0
+for line in f.readlines():
+	if line.startswith(target_ip):
+		if lines[lines_index].count(" ") < 9:
+			lines[lines_index] += (
+				" " + line[target_ip_len : line.find("#")].strip()  # remove comments
+			)
+		else:
+			lines[lines_index] += "\n"
+			lines.append(line[: line.find("#")].strip()) # remove comments
+			lines_index += 1
+# Sort and remove duplicates
+CleanedLines = sorted(set(lines))
+
+f.truncate(0) # Clear contents of f
+f.seek(0) # Move pointer to start of file
+
+for line in CleanedLines:
+	f.write(line)
+
+f.close()
+
+EndOfFile
+
+	chmod +x $WORKINGDIR/compress.py
+	$WORKINGDIR/compress.py
+
+}
+
+
+# append the list to the /etc/hosts
+function append_blocklist
+{
+	# copy /etc/hosts, but the stuff between the markers, to a temp hosts file
+	sed -e "/$markerstart/,/$markerend/d" /etc/hosts > $WORKINGDIR/hosts-temp
+	# remove the markers
+	sed -i -e "/$markerstart/d" $WORKINGDIR/hosts-temp
+	sed -i -e "/$markerend/d"   $WORKINGDIR/hosts-temp
+
+	if [ "$unblock" = true ] ; then
+		yad --image="info" --title "$title" --text=$"Restoring original /etc/hosts."
+        exit 1
+	else
+		# add list contents into the hosts file, below a marker (for easier removal)
+		echo "$markerstart" >> $WORKINGDIR/hosts-temp
+		echo "# These kinds of sites are blocked : $what_to_block" >> $WORKINGDIR/hosts-temp # Show what blocking options are used
+		cat $WORKINGDIR/blocklist-all >> $WORKINGDIR/hosts-temp
+		echo "$markerend" >> $WORKINGDIR/hosts-temp
+	fi
+    # On first use backup original /etc/hosts to /etc/hosts.ORIGINAL
+    # If /etc/hosts.original exists, then backup to /etc/hosts.saved
+    if [ -f /etc/hosts.ORIGINAL ]; then
+    cp "/etc/hosts" "/etc/hosts.saved"
+    mv $WORKINGDIR/hosts-temp "/etc/hosts"
+    else
+    cp "/etc/hosts" "/etc/hosts.ORIGINAL"
+    cp "/etc/hosts" "/etc/hosts.saved"
+    mv $WORKINGDIR/hosts-temp /etc/hosts
+    fi
+}
+
+
+# usage: wget_dialog url file
+# $1 : url of the file
+# $2 : file: location of the downloaded file
+function wget_dialog
+{
+    #echo "url: [$1]"
+    url=$1
+    # extract domain name between // and /
+    domain=$(echo "$url" | cut -d/ -f3)
+    #echo "===> $domain"
+
+    # '--progress=dot' prints dots and a percentage at the end of the line
+    # print $7 to cut the percentage
+    # system("") to flush the output of awk in the pipe
+    # sed to delete the ending '%' sign
+    # sed -u to flush the output of sed
+    # changed -t 0 (tries) to -t 20
+    wget -c -4 -t 20 -T 10 --progress=dot -O $2 "$1" 2>&1 | \
+        awk '{print $7}; system("")' | sed -u 's/%//' | \
+        yad --title "$title" --progress --width $WIDTH \
+               --text=$"Loading  blocklist from $domain" \
+               --percentage=0 \
+               --auto-close
+}
+
+# download the ads lists
+function download_blocklist
+{
+    # UNBLOCK
+    if [ "$unblock" == "true" ]; then
+        mv -f "/etc/hosts.ORIGINAL" "/etc/hosts"
+        rm -f "/etc/hosts.saved"
+    elif [ -z $what_to_block ] ; then
+		# StevenBlack's basic blocklist ( blocks adware, malware etc., ) , without any other extensions
+		wget_dialog https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts $WORKINGDIR/blocklist1
+	else
+		# StevenBlack's blocklist with selected extensions
+		wget_dialog "https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/"$what_to_block"/hosts" $WORKINGDIR/blocklist1
+	fi
+
+
+    #100830 BK bug fix: create if not exist...
+    touch $WORKINGDIR/blocklist{1,2,3,4,5}
+}
+
+
+function success
+{
+	# tell user
+	yad --image "info" --title "$title" --text=$"Success - your settings have been changed.\n\n\
+Your hosts file has been updated.\n\
+Restart your browser to see the changes."
+}
+
+#=======================================================================
+# main
+#
+
+# display message and ask to continue
+yad --title "$title" --width "$WIDTH" --image "question" --text "$info_text"
+rsp=$?
+
+if [ $rsp != 0 ]; then
+    exit 0
+fi
+
+# selection dialog
+ans=$(yad --title "$title" \
+             --width "$WIDTH" --height 250 \
+             --list --separator=":" \
+             --text $"Choose what to block" \
+             --checklist  --column "Pick" --column "To be blocked"\
+             TRUE "Block_Ad_and_Malware_websites" \
+             TRUE "Block_Pornographic_websites" \
+             TRUE "Block_Gambling_websites" \
+             TRUE "Block_Fakenews_websites" \
+             FALSE "Block_Social_Media_websites" \
+             FALSE "UNBLOCK_everything" )
+
+#echo $ans
+
+# transform the list separated by ':' into arr
+arr=$(echo $ans | tr ":" "\n")
+
+selected=""
+what_to_block=""
+for x in $arr
+do
+    #echo "> [$x]"
+
+    case $x in
+    Block_Fakenews_websites)
+        block_fakenews='true'
+        selected='yes'
+        ;;
+    Block_Gambling_websites)
+        block_gambling='true'
+        selected='yes'
+        ;;
+    Block_Pornographic_websites)
+        block_porn='true'
+        selected='yes'
+        ;;
+    Block_Social_Media_websites)
+        block_social_media='true'
+        selected='yes'
+        ;;
+    Block_Ad_and_Malware_websites)
+        block_ads_and_malware='true'
+        selected='yes'
+        ;;
+    UNBLOCK_everything)
+        unblock='true'
+        selected='yes'
+        ;;
+    esac
+done
+
+# Convert it into a pattern for the download link
+# This code is in the order of StevenBlack's hosts links to download
+# Wrong order will make the download link invalid
+# The order of these extensions is fakenews-gambling-porn-social
+if [ "$block_fakenews" == true ] ; then
+	what_to_block=$(echo "fakenews-")
+fi
+
+if [ "$block_gambling" == true ] ; then
+	what_to_block=$(echo $what_to_block"gambling-")
+fi
+
+if [ "$block_porn" == true ] ; then
+	what_to_block=$(echo $what_to_block"porn-")
+fi
+
+if [ "$block_social_media" == true ] ; then
+	what_to_block=$(echo $what_to_block"social-")
+fi
+
+# Remove the trailing hyphen, if any. This is to make it compatible to StevenBlack's hosts download link
+what_to_block=$(echo ${what_to_block%-})
+
+if [ -z $selected ]; then
+    # nothing selected
+    echo $"No item selected"
+    exit 0
+fi
+
+cleanup
+download_blocklist
+build_blocklist_all
+append_blocklist
+cleanup
+success
+
+}
+#}}} <#2562
+#{{{ >>>   mkfstab >#2563
+
+mkfstab() {
+sudo cp /etc/fstab .
+sudo chown batan:batan fstab
+echo "UUID=12982129-8212-9821-2982-129821298212 /media/batan/100 ext4 defaults,rw,noatime 1 2" >> fstab
+sudo chown root:root fstab
+sudo rm -f /etc/fstab
+sudo mv fstab /etc
+}
+#}}} <#2573
+#{{{ >>>   lc-cheatsheet >#2574
+lc-cheatsheet() {
+    alacritty -e less ~/.config/cheatsheets/$(ls ~/.config/cheatsheets|dmenu -l 5)
+}
+#}}} <#2578
+#{{{ >>>   lc-password >#2579
+lc-password() {
+#!/bin/bash
+CO="1"
+password=""
+echo "Enter password: "
+stty -echo  # Turn off echo
+while IFS= read -r -n1 char ; do
+    if [[ $char == '' ]]; then
+        break
+    fi
+	password+="$char"
+	echo -n "*"  # Print '*' for each character
+	((CO++))
+done
+stty echo  # Turn echo back on
+echo  # Move to the next line
+echo $password
+}
+#}}} <#2598
+#{{{ >>>   lcfind >#2599
+lcfind() {
+	find $1 -maxdepth 1 -type f -exec grep -l $2 {} +  |rev|sed 's![/].*$!!g'|rev|grep -vE "mp4|mp3|png|jpg|AppIm"
+}
+#}}} <#2603
+#{{{ >>>   lcown >#2604
+lcown() {
+	sudo chown -R batan:batan $1
+}
+#}}} <#2608
+#{{{ >>>   lcx >#2609
+lcx() {
+sudo chmod +x $1
+}
+#}}} <#2613
+#{{{ >>>   menu >#2614
+menu() {
+    sleep 0.1
+    declare -a options=()
+    
+
+    # Check if input is piped (stdin is available)
+    if [ ! -t 0 ]; then
+        # Reading input from stdin, which is piped
+        while IFS= read -r line; do
+            options+=("$line")
+        done
+    else
+        # If no input is piped, use the passed argument as a command to generate options
+        # For example, ls | menu or echo "option1 option2" | menu
+        declare -a options=("Back" $($@))
+    fi
+
+    total=${#options[@]}
+    MAX_DISPLAY=10
+    start_index=0
+    selected=0  # Initialize selected index
+
+    # Decorations
+    HS="\033[32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+
+    function show_menu() {
+        clear
+        echo -e "$HS"
+        for ((i = 0; i < MAX_DISPLAY; i++)); do
+            idx=$((start_index + i))
+            if [[ $idx -ge $total ]]; then
+                break
+            fi
+            if [[ $idx -eq $selected ]]; then
+                echo -e "\e[1m\e[32m ->  ${options[$idx]}\e[0m"
+            else
+                echo "   ${options[$idx]}"
+            fi
+        done
+        echo -e "$HS"
+        echo -e ""
+    }
+
+    while true; do
+        show_menu
+        read -rsn3 key
+
+        case $key in
+            $'\e[A')  # Up arrow key
+                if (( selected > 0 )); then
+                    ((selected--))
+                fi
+                if (( selected < start_index )); then
+                    ((start_index--))
+                fi
+                ;;
+            $'\e[B')  # Down arrow key
+                if (( selected < total - 1 )); then
+                    ((selected++))
+                fi
+                if (( selected >= start_index + MAX_DISPLAY )); then
+                    ((start_index++))
+                fi
+                ;;
+            $'\e[D') cd \..
+                break
+                REFRESH_OPTIONS
+                ;;
+  
+            '')  # Enter key
+                clear
+                xxx="${options[$selected]}"
+
+                break  2>/dev/null
+                read -rsn1 -p "Press any key to continue..."
+                return  # Exit menu after selection
+                ;;
+        esac
+    done
+back="cd \.."
+    if declare -F "$xxx" >/dev/null; then
+    "$xxx"  # Call the function by name
+    else
+
+    case "$xxx" in
+
+        'back')
+            $back
+            ;;
+    http://*|https://*)
+        firefox "$xxx"
+   #echo $xxx
+        ;;
+
+    '*Root*')
+        
+        echo -e "\033[34mEnter TAB to select more or \033[32m[\033[37m ANY \033[32m]\033[34m to continue"
+        read -rsn1 keyy
+         case "$keyy" in 
+             '\t') FFF="$FFF $xxx";;
+             '') megaget "$xxx";;
+             esac
+             ;;
+
+    *.mp3|*.flac|*.wav)
+       # lcplay /media/batan/100/Music/"$xxx"
+       input="$input $xxx"
+        ;;
+    *.mp4|*.mkv|*.webm)
+        mpv "$xxx"
+        ;;
+    *.txt|*.md|*.log)
+        less "$xxx"
+        ;;
+    *.sh)
+        bash "$xxx"
+        ;;
+    *.pdf)
+        zathura "$xxx"
+        ;;
+    *)
+        echo "Unknown or unsupported file type: $xxx"
+        ;;
+esac
+    fi
+}
+#}}} <#2741
+#{{{ >>>   lookfor >#2742
+lookfor() {
+    find /media/batan/{100,200,300/home/batan,400/home/batan/,500/home/batan/,600/home/batan/,700/home/batan/,800/home/batan/,900/home/batan} -maxdepth 4 -type $2 -name "*$1*" 2>/dev/null
+}
+#}}} <#2746
+#{{{ >>>   lookfor2 >#2742
+lookfor2() {
+	find $(lsblk -l -o MOUNTPOINTS|grep disk) -maxdepth 4 -type $2 -name "*$1*"
+}
+#}}} <#2746
+#{{{ >>>   job_search_form >#2747
+job_search_form() {
+#!/bin/bash
+clear
+COUNTER="1"
+B="\033[37m"
+P="\033[34m"
+G="\033[32m"
+N="\033[0m"
+L="\033[35m"
+DAY=$(date +%j)
+FILE="JOBS.$DAY.wiki"
+display_table() {
+clear
+COUNTER=""
+COUNTER="1"
+tput cup 0 0;tput el;tput cup 0 0;echo -e "$P╔═════════════════════════════════════╤═════════════════════════════╤════════════════╤══════════╤══════════════════╗"
+tput cup 1 0;tput el;tput cup 1 0;echo -e "$P║$B Position $L:                          $P│$B Company $L:                   $P│$B Location $L:     $P│$B Date $L:   $P│$B Method $L:         $P║"
+tput cup 2 0;tput el;tput cup 2 0;echo -e "╠═════════════════════════════════════╪═════════════════════════════╪════════════════╪══════════╪══════════════════╣"
+for x in $(seq 2 2 $(( $(( $AA * 2 )) - 2 ))); do
+	tput cup $(( 1 + $x )) 0
+	echo -e "╟─────────────────────────────────────┼─────────────────────────────┼────────────────┼──────────┼──────────────────╢"
+	echo -e "$P║$G${POSITION[$COUNTER]}\033[39G$P│$G${COMPANY[$COUNTER]}\033[69G$P│$G${LOCATION[$COUNTER]}\033[86G$P│$G${DATE[$COUNTER]}\033[97G$P│$G${METHOD[$COUNTER]}\033[116G$P║"
+	((COUNTER++))
+done
+echo -e "$P╚═════════════════════════════════════╧═════════════════════════════╧════════════════╧══════════╧══════════════════╝$N"
+}
+AA=1
+BB=2
+echo -e " Position:                             Company:                      Location:        Date:      Method:"
+echo -e "\033[32m ══════════════════════════════════════════════════════════════════════════════════════════════════════════════\033[0m"
+declare -a POSITION COMPANY LOCATION DATE METHOD LINE
+while true; do
+    tput cup $BB 1; echo -e "\033[34mPosition"
+    tput cup $BB 40; echo -e "\033[34mCompany"
+    tput cup $BB 70; echo -e "\033[34mLocation"
+    tput cup $BB 87; echo -e "\033[34mDate"
+    tput cup $BB 98; echo -e "\033[34mMethod\033[32m"
+    tput cup $BB 1; read POSITION[$AA]
+    tput cup $BB 39; read COMPANY[$AA]
+    tput cup $BB 69; read -e -i "NSW-Sydney    " LOCATION[$AA]
+    tput cup $BB 86; read -e -i "2025-05-09" DATE[$AA]
+    tput cup $BB 97; read -e -i "Seek   " METHOD[$AA]
+    LINE[$AA]="\033[1G${POSITION[$AA]} \033[40G${COMPANY[$AA]} \033[70G${LOCATION[$AA]} \033[87G${DATE[$AA]} \033[98G${METHOD[$AA]}"
+    tput cup $BB 0; tput el; echo -e "${LINE[$AA]}"
+    ((AA++))
+    ((BB++))
+	read -n1 key
+	case $key in
+		'`')
+			display_table |tee $FILE
+			break
+			;;
+		'*') continue ;;
+	esac
+done
+
+
+}
+#}}} <#2806
+#{{{ >>>   flatpak_manager >#2807
+flatpak_manager() {
+    OPTIONS="$(cat /home/batan/.config/lists/flatpak.list)"
+
+}
+#}}} <#2812
+#{{{ >>>   clear_clipboard >#2813
+clear_clipboard() {
+xclip -selection clipboard /dev/null && xclip -selection primary /dev/null
+rm /home/batan/.config/lc-clipboard/register*
+touch /home/batan/.config/lc-clipboard/register{1..9}
+}
+#}}} <#2819
+#{{{ >>>   refresh_repo_list >#2820
+refresh_repo_list() {
+FILEFLAT="/home/batan/.config/lists/flatpak.list"
+FILEAPT="/home/batan/.config/lists/apt.list"
+FILEPIPX="/home/batan/.config/lists/pipx.list"
+
+if [[ -f $FILEFLAT ]]; then
+ rm -f $FILEFLAT 
+ fi
+flatpak remote-ls flathub --columns=name,version,application | sort -u >> $FILEFLAT
+
+if [[ -f $FILEAPT ]]; then
+ rm -f $FILEAPT 
+ fi
+sudo apt-get list|sed 's/[/].*$//g' >> $FILEAPT 
+}
+#}}} <#2836
+#{{{ >>>   lc-shfm >#2837
+lc-shfm() {
+#!/bin/sh
+
+# lc-shfm
+# leader on [,]
+# toggle directories on [']
+# https://github.com/batan/lc-shfm
+
+
+
+
+esc() {
+    case $1 in
+        # vt100 (IL is vt102) (DECTCEM is vt520)
+        CUD)     printf '%s[%sB'    "$esc_c" "$2"      ;; # cursor down
+        CUP)     printf '%s[%s;%sH' "$esc_c" "$2" "$3" ;; # cursor home
+        CUU)     printf '%s[%sA'    "$esc_c" "$2"      ;; # cursor up
+        DECAWM)  printf '%s[?7%s'   "$esc_c" "$2"      ;; # line wrap
+        DECRC)   printf '%s8'       "$esc_c"           ;; # cursor restore
+        DECSC)   printf '%s7'       "$esc_c"           ;; # cursor save
+        DECSTBM) printf '%s[%s;%sr' "$esc_c" "$2" "$3" ;; # scroll region
+        DECTCEM) printf '%s[?25%s'  "$esc_c" "$2"      ;; # cursor visible
+        ED[0-2]) printf '%s[%sJ'    "$esc_c" "${1#ED}" ;; # clear screen
+        EL[0-2]) printf '%s[%sK'    "$esc_c" "${1#EL}" ;; # clear line
+        IL)      printf '%s[%sL'    "$esc_c" "$2"      ;; # insert line
+        SGR)     printf '%s[%s;%sm' "$esc_c" "$2" "$3" ;; # colors
+
+        # xterm (since 1988, supported widely)
+        screen_alt) printf '%s[?1049%s' "$esc_c" "$2" ;; # alternate buffer
+    esac
+}
+
+term_setup() {
+    stty=$(stty -g)
+    stty -icanon -echo
+    esc screen_alt h
+    esc DECAWM l
+    esc DECTCEM l
+    esc ED2
+    esc DECSTBM 1 "$((LINES - 2))"
+}
+
+term_reset() {
+    esc DECAWM h     >&2
+    esc DECTCEM h    >&2
+    esc ED2          >&2
+    esc DECSTBM      >&2
+    esc screen_alt l >&2
+    stty "$stty"
+
+    # needed for cd-on-exit
+    printf '%s\n' "$PWD" >&1
+}
+
+term_resize() {
+    # false-positive, behavior intentional, globbing is disabled.
+    # shellcheck disable=2046
+    {
+        set -f
+        set +f -- $(stty size)
+    }
+
+    LINES=$1 COLUMNS=$2
+
+    # space for status_line
+    bottom=$((LINES - 2))
+}
+
+term_scroll_down() {
+    case $((y - $#)) in
+        [0-9]*) return
+    esac
+
+    y=$((y + 1))
+    y2=$((y2 + 1 < bottom ? y2 + 1 : bottom))
+
+    line_print "$((y - 1))" "$@"
+    printf '\n'
+    line_print "$y" "$@"
+    status_line "$#"
+}
+
+term_scroll_up() {
+    case $y in
+        -*|0|1) return
+    esac
+
+    y=$((y - 1))
+
+    line_print "$((y + 1))" "$@"
+
+    case $y2 in
+        1) esc IL ;;
+        *) esc CUU; y2=$((y2 > 1 ? y2 - 1 : 1))
+    esac
+
+    line_print "$y" "$@"
+    status_line "$#"
+}
+
+cmd_run() {
+    stty "$stty"
+    esc DECTCEM h
+    esc DECSTBM
+    esc ED2
+    "$@" ||:
+    esc DECSTBM 1 "$((LINES - 2))"
+    esc DECTCEM l
+    stty -icanon -echo
+    hist=2
+}
+
+file_escape() {
+    tmp=$1 safe=
+
+    # loop over string char by char
+    while c=${tmp%"${tmp#?}"}; do
+        case $c in
+            '')          return ;;
+            [[:cntrl:]]) safe=$safe\? ;;
+            *)           safe=$safe$c ;;
+        esac
+
+        tmp=${tmp#?}
+    done
+}
+
+hist_search() {
+    hist=0 j=1
+
+    for file do
+        case ${PWD%%/}/$file in
+            "$old_pwd") y=$j y2=$((j >= bottom ? mid : j)) cur=$file
+        esac
+
+        j=$((j + 1))
+    done
+}
+
+list_print() {
+    esc ED2
+    esc CUP
+
+    i=1
+    end=$((bottom + 1))
+    mid=$((bottom / 4 < 5 ? 1 : bottom / 4))
+
+    case $# in
+        1) [ -e "$1" ] || [ "$1" = 'no results' ] || set -- empty
+    esac
+
+    case $hist in
+        2) # redraw after cmd run
+            shift "$((y > y2 ? y - y2 : 0))"
+        ;;
+
+        1) # redraw after go-to-parent
+            hist_search "$@"
+            shift "$((y >= bottom ? y - mid : 0))"
+        ;;
+
+        *) # everything else
+            shift "$((y >= bottom ? y - bottom : 0))"
+        ;;
+    esac
+
+    for file do
+        case $i in
+            "$y2") esc SGR 0 7
+        esac
+
+        case $((i - end)) in
+            -*)
+                line_format "$file"
+                esc CUD
+            ;;
+        esac
+
+        i=$((i + 1))
+    done
+
+    esc CUP "$((y > y2 ? y2 : y))"
+}
+
+redraw() {
+    list_print "$@"
+    status_line "$#"
+}
+
+status_line() {
+    esc DECSC
+    esc CUP "$LINES"
+
+    case $USER in
+        root) esc SGR 31 7 ;;
+           *) esc SGR 34 7 ;;
+    esac
+
+    printf '%*s\r%s ' "$COLUMNS" "" "($y/$1)"
+
+    case $ltype in
+        '') printf %s "$PWD" ;;
+         *) printf %s "$ltype"
+    esac
+
+    esc SGR 0 0
+    esc DECRC
+}
+
+prompt() {
+    esc DECSC
+    esc CUP "$LINES"
+    printf %s "$1"
+    esc DECTCEM h
+    esc EL0
+
+    case $2 in
+        r)
+            stty icanon echo
+            read -r ans ||:
+            stty -icanon -echo
+        ;;
+    esac
+
+    esc DECRC
+    esc DECTCEM l
+    status_line "($y/$#) $PWD"
+}
+
+line_print() {
+    offset=$1
+
+    case $offset in
+        "$y") esc SGR 0 7
+    esac
+
+    shift "$offset"
+
+    case $offset in
+        "$y") cur=$1
+    esac
+
+    line_format "$1"
+}
+
+line_format() {
+    file_escape "$1"
+    [ -d "$1" ] && esc SGR 1 31
+    printf %s "$safe"
+    [ -d "$1" ] && printf /
+    esc SGR 0 0
+    esc EL0
+    printf '\r'
+}
+
+main() {
+    set -e
+
+    case $1 in
+        -h|--help)
+            printf 'shfm -[hv] <starting dir>\n'
+            exit 0
+        ;;
+
+        -v|--version)
+            printf 'shfm 0.4.2\n'
+            exit 0
+        ;;
+
+        *)
+            cd -- "${1:-"$PWD"}"
+        ;;
+    esac
+
+    esc_c=$(printf '\033')
+    bs_char=$(printf '\177')
+
+    set -- *
+    cur=$1
+
+    term_resize
+    term_setup
+
+    trap 'term_reset'  EXIT INT
+    trap 'term_resize; term_setup; y=1 y2=1; redraw "$@"' WINCH
+
+    y=1 y2=1
+    redraw "$@"
+
+    while key=$(dd ibs=1 count=1 2>/dev/null); do
+        case $key${esc:=0} in
+            k?|A2)
+                term_scroll_up "$@"
+            ;;
+
+            j?|B2)
+                term_scroll_down "$@"
+            ;;
+
+            l?|C2|"$esc") # ARROW RIGHT
+                if [ -d "$cur" ] && cd -- "$cur" >/dev/null 2>&1; then
+                    set -- *
+                    y=1 y2=1 cur=$1 ltype=
+                    redraw "$@"
+
+                elif [ -e "$cur" ]; then
+                    cmd_run "${SHFM_OPENER:="${EDITOR:=vi}"}" "$cur"
+                    redraw "$@"
+                fi
+            ;;
+
+            h?|D2|"$bs_char"?) # ARROW LEFT
+                old_pwd=$PWD
+
+                case $ltype in
+                    '') cd .. || continue ;;
+                     *) ltype= ;;
+                esac
+
+                set -- *
+                y=1 y2=1 cur=$1 hist=1
+                redraw "$@"
+            ;;
+
+            g?)
+                case $y in
+                    1) continue
+                esac
+
+                y=1 y2=1 cur=$1
+                redraw "$@"
+            ;;
+
+            G?)
+                y=$#
+                y2=$(($# < bottom ? $# : bottom))
+                line_print "$y" "$@"
+                redraw "$@"
+            ;;
+
+            .?)
+                case ${hidden:=1} in
+                    1) hidden=0; set -- .* ;;
+                    0) hidden=1; set -- *
+                esac
+
+                y=1 y2=1 cur=$1
+                redraw "$@"
+            ;;
+
+            :?)
+                prompt "cd: " r
+
+                # false positive, behavior intentional
+                # shellcheck disable=2088
+                case $ans in
+                    '~')   ans=$HOME ;;
+                    '~/'*) ans=$HOME/${ans#"~/"}
+                esac
+
+                cd -- "${ans:="$0"}" >/dev/null 2>&1|| continue
+                set -- *
+                y=1 y2=1 cur=$1
+                redraw "$@"
+            ;;
+
+            /?)
+                prompt / r
+
+                IFS=
+                # globbing intentional, word splitting is disabled.
+                # shellcheck disable=2086
+                set -- $ans*
+                unset IFS
+
+                case $1$# in
+                    "$ans*1") set -- 'no results'
+                esac
+
+                y=1 y2=1 cur=$1 ltype="search $PWD/$ans*"
+                redraw "$@"
+                status_line "$#"
+            ;;
+
+            -?)
+                cd -- "$OLDPWD" >/dev/null 2>&1|| continue
+                set -- *
+                y=1 y2=1 cur=$1
+                redraw "$@"
+            ;;
+
+            \~?)
+                cd || continue
+                set -- *
+                y=1 y2=1 cur=$1
+                redraw "$@"
+            ;;
+
+            \!?)
+                export SHFM_LEVEL
+                SHFM_LEVEL=$((SHFM_LEVEL + 1))
+                cmd_run "${SHELL:=/bin/sh}"
+                redraw "$@"
+            ;;
+
+            \??)
+                set -- 'j - down' \
+                       'k - up' \
+                       'l - open file or directory' \
+                       'h - go up level' \
+                       'g - go to top' \
+                       'G - go to bottom' \
+                       'q - quit' \
+                       ': - cd to <input>' \
+                       '/ - search current directory <input>*' \
+                       '- - go to last directory' \
+                       '~ - go home' \
+                       '! - spawn shell' \
+                       '. - toggle hidden files' \
+                       '? - show keybinds' \
+                              '[to add]' \
+                       ', - <leader>' \
+                       '  - toggle directories files'
+
+                y=1 y2=1 cur=$1 ltype=keybinds
+                redraw "$@"
+                status_line "$#"
+            ;;
+
+            q?) exit 0 ;;
+
+            # handle keys which emit escape sequences
+            "$esc_c"*) esc=1 ;;
+                 '[1') esc=2 ;;
+                    *) esc=0 ;;
+        esac
+    done
+}
+
+main "$@" >/dev/tty
+
+}
+
+#}}} <#3281
+#{{{ >>>   lc-Rename
+lc-Rename () {
+#{{{ >>>   definitions
+list_files() {
+echo -e "\033[34m$(find . -maxdepth 1 -type f|sed 's/\.\///g')\033[0m"
+}
+list_dirs() {
+echo -e "\033[33m$(find . -maxdepth 1 -type d|sed 's/\.\///g')\033[0m"
+}
+ AA="─"
+ BB=""
+ for x in $(seq 1 $(tput cols)); do 
+	 BB="$BB$AA" 
+	 done
+#}}}
+#{{{ rename_all_files
+rename_all_files() {
+	rename 's/ /_/g' *
+	rename 's/-?[0-9a-fA-F]{2,}\b//g' * 
+	rename 's/HD//g' *
+	rename 's/Video//g' *
+	rename 's/Live//g' *
+	rename 's/Official//g' *
+	rename 's/!//g' *
+	rename 's/\&//g' *
+	rename 's/\!//g' *
+	rename 's/\#//g' *
+	rename 's/\://g' *
+	rename 's/\,//g' *
+	rename "s/\'//g" *
+	rename 's/\[.*\]//g' *
+	rename 's/\(.*\)//g' *
+	rename 's/_\./\./g' *
+	rename 's/\.\./\./g' *
+	rename 's/-\./\./g' *
+	rename 's/_\./\./g' *
+	rename 's/č/c/g' * 2> /dev/null
+	rename 's/š/s/g' * 2> /dev/null
+	rename 's/đ/d/g' * 2> /dev/null
+	rename 's/Đ/D/g' * 2> /dev/null
+	for f in *; do
+  new=$(echo "$f" | sed -E 's/ /_/g' | sed -E 's/(^|_)([a-z])/\1\u\2/g')
+  [[ "$f" != "$new" ]] && mv -n -- "$f" "$new"
+done
+shopt -s nullglob
+for f in *.*; do
+  name="${f%.*}"
+  ext="${f##*.}"
+  if [[ "$name" =~ ^[0-9a-fA-F]{6,}$ ]]; then
+    echo "Removing file: $f"
+    rm -v -- "$f"
+    # Or move instead:
+    # mv -v -- "$f" ./junk/
+  fi
+done
+     rename 's/-[^.]*\.//' *    
+	 rename 's/_//g' *
+	 rename 's/mp4/\.mp4/g' *
+
+}
+#}}}
+#{{{ display_current_dir
+display_current_dir() {
+clear
+echo -e "\033[32m$BB\033[0m"
+echo -e "\033[1A\033[10G   \033[33mDirectories :                    \033[0m"
+list_dirs
+echo -e "\033[32m$BB\033[0m"
+echo -e "\033[1A\033[10G   \033[34mFiles       :                    \033[0m"
+list_files
+echo -e "\033[32m$BB\033[0m"
+echo -e "\033[1A\033[10G   \033[36mEnter \033[33m[[\033[37m ANY\033[33m ]]\033[36m to continue...   \033[0m"
+read -n1
+}
+#}}}
+#{{{ promp_cd
+promp_cd() {
+echo -e "\033[32m$BB\033[0m"
+echo -e "   \033[37mCtrl\033[32m+\033[37mShift\033[32m+\033[37mv\033[0m \033[3m will paste current directory to input\033[34m   \033[0m"
+echo -e "\033[10G   \033[36mAssign \033[37mDIR\033[36m path \033[0m:\033[36m   >>>   "
+read DIR
+cd $DIR
+}
+#}}}
+
+
+tput civis
+pwd|xclip -selection clipboard
+promp_cd
+display_current_dir
+rename_all_files
+tput cnorm
+}
+#}}}
+
+#{{{ >>>   lc-browser-history >#3283
+lc-browser-history() {
+browser-history |sed 's!.*https!https!'|sed 's/,.*$//g'|grep https|grep -vE "query|duckduck|search|categories"|grep $1
+}
+#}}} <#3287
+#{{{ >>>   hosts_compression >#3288
+hosts_compression() {
+if [[ $# -gt 0 ]]; then
+	OUTPUT="$*"
+fi
+SEPERATOR="════════════════════════════════════════════════"
+TITLE=$(cat << EOF
+ ╔$SEPERATOR╗
+ ║ Linux Hosts File Compressor                    ║
+ ╚$SEPERATOR╝
+EOF
+)
+HOSTS="/etc/hosts"
+if [[ ! -f "$HOSTS" ]]; then
+	echo -e "$HOSTS does not exist."
+	exit 1
+fi
+CONTENT=$(<$HOSTS)
+HEADERARRAY=() URLSTEMPARRAY=() URLSARRAY=() FOOTERARRAY=() ISHEADER=true
+index=0
+clear && echo -en "\x1b[3J$TITLE"
+while IFS= read -r line; do
+	index=$((index + 1))
+	echo -en "\x1b[J\x1b[4;1H\x1b[s  $SEPERATOR\n  Parsing line: [$index]\n  $SEPERATOR\x1b[u"
+	if [[ "$line" =~ ^(0.0.0.0)[\s]* ]] && ! [[ "$line" =~ ^0.0.0.0" "0.0.0.0$ ]]; then
+		if [[ -n "$ISHEADER" ]]; then
+			unset ISHEADER
+		fi
+		URLSTEMPARRAY+=("${line:8}")
+	else
+		if [[ -n "$ISHEADER" ]]; then
+			HEADERARRAY+=("$line")
+		else
+			FOOTERARRAY+=("$line")
+		fi
+	fi
+done < <(printf '%s\n' "$CONTENT")
+for ((index=0; index<${#URLSTEMPARRAY[@]}; index+=9))
+{
+	echo -en "\x1b[J\x1b[4;1H\x1b[s  $SEPERATOR\n  [$((${#URLSTEMPARRAY[@]} - index))] urls left to compress...\n  $SEPERATOR\x1b[u"
+	URLSARRAY+=("0.0.0.0 ${URLSTEMPARRAY[*]:$index:9}")
+}
+echo -en "\x1b[J\x1b[4;1H\x1b[s  $SEPERATOR\n  ${#URLSTEMPARRAY[@]} urls compressed to ${#URLSARRAY[@]} lines.\n  $SEPERATOR\x1b[u"
+echo -e "\x1b[6;1H"
+if [[ -n "$OUTPUT" ]]; then
+	printf '%s\n' "${HEADERARRAY[@]}" "${URLSARRAY[@]}" "${FOOTERARRAY[@]}" > "$OUTPUT"
+	echo -en "\x1b[J\x1b[7;1H\x1b[s  $SEPERATOR\n  The output file is located at:\n  $OUTPUT\n  $SEPERATOR\x1b[u"
+	echo -e "\x1b[10;1H"
+else
+	printf '%s\n' "${HEADERARRAY[@]}" "${URLSARRAY[@]}" "${FOOTERARRAY[@]}"
+fi
+
+}
+#}}} <#3341
+#{{{ >>>   lc-bukuadd >#3342
+lc-bukuadd() {
+export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus
+xfce4-terminal \
+  --geometry=100x3-0-0 \
+  --color-bg=black \
+  --color-text=Purple \
+  --hide-menubar \
+  --hide-borders \
+  --hide-scrollbar \
+  -e "bash -c 'while :; do
+    clear
+    echo -e \"\033[30m\033[47mEnter bookmark [URL] and [tag]   :\033[0m\033[35m\"
+    read -p \"     >>>   \" abc
+    read -p \"     >>>   \" bcd
+    buku -a \"\$abc\" +\"\$bcd\"
+  done'"
+}
+#}}} <#3360
+#{{{ >>>   lc-format-usb    >#3361
+lc-format-usb() {
+set -euo pipefail
+
+# List removable USB drives (ignoring loop and CDROMs)
+list_usb_disks() {
+    lsblk -ndo NAME,TRAN,SIZE,MODEL | awk '$2=="usb" {print "/dev/"$1, "("$3, $4")"}'
+}
+select_usb_device() {
+    mapfile -t devices < <(lsblk -dpno NAME,TYPE | awk '$2=="disk" {print $1}' | while read -r dev; do
+        if udevadm info --query=property --name="$dev" | grep -q 'ID_BUS=usb'; then
+            echo "$dev"
+        fi
+    done)
+
+    if [[ ${#devices[@]} -eq 0 ]]; then
+        echo "No USB devices found." >&2
+        exit 1
+    elif [[ ${#devices[@]} -eq 1 ]]; then
+        echo "${devices[0]}"
+    else
+        echo "Multiple USB devices found:"
+        for i in "${!devices[@]}"; do
+            model=$(lsblk -ndo MODEL "${devices[$i]}")
+            size=$(lsblk -ndo SIZE "${devices[$i]}")
+            echo "[$i] ${devices[$i]} ($model, $size)"
+        done
+        while true; do
+            read -rp "Select device number to use: " choice
+            [[ "$choice" =~ ^[0-9]+$ && "$choice" -ge 0 && "$choice" -lt "${#devices[@]}" ]] && break
+            echo "Invalid choice." >&2
+        done
+        echo "${devices[$choice]}"
+    fi
+}
+
+
+unmount_device() {
+    local dev="$1"
+    echo "Unmounting any mounted partitions on $dev..."
+    lsblk -ln "$dev" | awk '{print $1}' | while read -r part; do
+    mountpoint=$(findmnt -nr -o TARGET "/dev/$part" || true)
+    if [[ -n "$mountpoint" ]]; then
+        umount "/dev/$part"
+        echo "Unmounted /dev/$part from $mountpoint"
+    fi
+done
+}
+
+wipe_and_format() {
+    local dev="$1"
+    echo "Wiping partition table on $dev..."
+    wipefs -a "$dev"
+    sgdisk --zap-all "$dev" || true
+    dd if=/dev/zero of="$dev" bs=1M count=10 conv=fsync status=none
+
+    echo "Creating new msdos partition table..."
+    parted -s "$dev" mklabel msdos
+    parted -s "$dev" mkpart primary ext4 1MiB 100%
+
+    part="${dev}1"
+    echo "Formatting $part as ext4..."
+    mkfs.ext4 -F "$part"
+}
+
+main() {
+    dev=$(select_usb_device)
+    echo "Selected device: $dev"
+    read -rp "Are you sure you want to erase $dev? Type YES to continue: " confirm
+    [[ "$confirm" == "YES" ]] || { echo "Aborted."; exit 1; }
+
+    unmount_device "$dev"
+    wipe_and_format "$dev"
+
+    echo "Done. $dev now has a new ext4 partition."
+}
+main
+
+ }
+#}}} <#3440
+#{{{ >>>   ollama_query >#3441
+ollama_query() {
+nohup ollama start &
+sleep 2
+menu echo $(ollama ls)
+echo $xxx
+}
+#}}} <#3448
+#{{{ >>>   lc-flasher >#3449
+lc-flasher() {
+ while true; do 
+     printf \\e[?5h; sleep 0.1; printf \\e[?5l; 
+     read -s -n1 -t1 && break
+ done
+}
+#}}} <#3456
+#{{{ >>>   set_resume_variable >#3457
+set_resume_variable() {
+    # vim:fileencoding=utf-8:foldmethod=marker
+
+abc=$(blkid | awk -F\" '/swap/ {print $2}'|wc -l)
+
+if [[ $abc > 1 ]];
+then
+	printf "RESUME=UUID=$(blkid | awk -F\" '/swap/ {print $2}'|tail -n1)\n" | sudo tee /etc/initramfs-tools/conf.d/resume
+sudo update-initramfs -u -k all
+echo -e "Script run successfully. You should reboot."
+else
+	printf "RESUME=UUID=$(blkid | awk -F\" '/swap/ {print $2}')\n" | sudo tee /etc/initramfs-tools/conf.d/resume
+	fi
+sudo update-initramfs -u -k all
+echo -e "Script run successfully. You should reboot."
+}
+#}}}  <#3474
+#{{{ >>>   watch_tts_directory >#3475
+watch_tts_directory() {
+watch_tts_dir() {
+    local watch_dir="/home/batan/.config/TTS"
+
+    inotifywait -m -e create --format '%f' "$watch_dir" | while read -r new_file; do
+        [[ $new_file == *.png ]] || continue
+
+        local base="${new_file%.png}"
+        local fullpath="$watch_dir/$new_file"
+        local txtfile="$watch_dir/$base.txt"
+        local mp3file="$watch_dir/$base.mp3"
+
+        echo "[+] Detected: $new_file"
+
+        tesseract "$fullpath" "$watch_dir/$base" &>/dev/null
+        [[ -s "$txtfile" ]] || { echo "[!] Empty or no text extracted."; continue; }
+
+        /home/batan/.local/bin/edge-tts --text "$(cat "$txtfile")" --write-media "$mp3file" &>/dev/null
+        mpv --really-quiet --no-terminal "$mp3file"
+    done
+}
+watch_tts_dir
+
+
+}
+#}}} <#3501
+#{{{ >>>   install_codium_vim >#3502
+install_codium_vim() {
+ git clone https://github.com/Exafunction/codeium.vim ~/.vim/pack/Exafunction/start/codeium.vim
+}
+#}}} <#3506
+#{{{ >>>   install_codium_nvim >#3507
+install_codium_nvim() {
+  git clone https://github.com/Exafunction/codeium.vim ~/.config/nvim/pack/Exafunction/start/codeium.vim
+}
+#}}} <#3511
+#{{{ >>>   OPTIONS1 >#3512
+OPTIONS1() {
+    OPTIONS=("Partition" "Format" "Mount/Unmount" "Repair Filesystem" "Disk Usage Analysis" "Label and UUID Management")
+    COMMANDS=("YESNO=1" "YESNO=0")
+    NUM_OPTIONS=${#OPTIONS[@]}
+    tput civis
+}
+#}}} <#3519
+#{{{ >>>   OPTIONS2 >#3520
+OPTIONS2() {
+    OPTIONS="$()"
+    COMMANDS=("YESNO=1" "YESNO=0")
+    NUM_OPTIONS=${#OPTIONS[@]}
+    tcup civis
+}
+#}}} <#3527
+#{{{ >>>   OPTIONS3 >#3528
+OPTIONS3() {
+    OPTIONS="$()"
+    COMMANDS=("YESNO=1" "YESNO=0")
+    NUM_OPTIONS=${#OPTIONS[@]}
+    tcup civis
+}
+#}}} <#3535
+#{{{ >>>   OPTIONS4 >#3536
+OPTIONS4() {
+    OPTIONS="$()"
+    COMMANDS=("YESNO=1" "YESNO=0")
+    NUM_OPTIONS=${#OPTIONS[@]}
+    tcup civis
+}
+#}}} <#3543
+#{{{ >>>   DISPLAY_OPTIONS >#3544
+DISPLAY_OPTIONS() {
+    echo -ne "\033[3G"  # Move cursor to beginning of the line
+    for ((i=0; i<NUM_OPTIONS; i++)); do
+        if [[ $i -eq $selected ]]; then
+            echo -ne "\e[7m${OPTIONS[i]}\e[27m   "  # Highlight selected option
+        else
+            echo -en "${OPTIONS[i]}   "
+        fi
+    done
+    tput sgr0
+}
+#}}} <#3556
+#{{{ >>>   EXECUTE_COMMAND >#3557
+EXECUTE_COMMAND() {
+  eval "${COMMANDS[selected]}"
+  return 0
+}
+#}}} <#3562
+#{{{ >>>   MAIN_LOOP >#3563
+MAIN_LOOP() {
+selected="0"
+DISPLAY_OPTIONS
+
+# Main loop
+while true; do
+    IFS= read -rsn1 key
+    if [[ $key == $'\e' ]]; then
+        read -rsn2 key  # Read next two characters
+        case $key in
+            '[D')  ((selected--)) ;;  # Left
+            '[C')  ((selected++)) ;;  # Right
+        esac
+    elif [[ $key == "" ]]; then
+        EXECUTE_COMMAND
+        echo $YESNO
+         break
+    fi
+
+    ((selected = (selected + NUM_OPTIONS) % NUM_OPTIONS))
+    DISPLAY_OPTIONS
+done
+}
+#}}} <#3587
+#{{{ >>>   compoundcmd >#3588
+compoundcmd() {
+OPTIONS1
+MAIN_LOOP
+}
+
+#}}} <#3594
+#{{{ >>>   monitor_data_transfer >#3595a
+monitor_data_transfer() {
+nohup sudo -u batan bash /home/batan/.config/home/data-transfer-monitor/src/get-data.sh &
+sleep 1
+firefox /home/batan/.config/home/data-transfer-monitor/src/index.html
+}
+#}}} <#3601
+#{{{ >>>   superimpose_logo >#3602
+superimpose_logo() {
+    read -p "Background Image:   >>>   " backg
+    read -p "Logo Image:         >>>   " logo
+    read -p "Output Image:       >>>   " output
+convert $backg $logo -gravity southeast -geometry +30+30 -composite $output 
+}
+#}}}  <#3609
+#{{{ >>>   lc-wordlookup >#3610
+
+lc-wordlookup() {
+print_usage() {
+echo "Usage: $(basename "$0") <word>"
+}
+if [[ -z "$1" ]]; then
+	notify-send -t 30000 -h string:bgcolor:#ffffff -h string:fgcolor:#000000 -a "word-lookup" "No word provided"
+print_usage
+exit 1
+fi
+
+word=$1
+
+res=$(curl -s "https://api.dictionaryapi.dev/api/v2/entries/en_US/$word")
+
+regex=$'"definition":"\K(.*?)(?=")'
+
+definitions=$(echo "$res" | grep -Po "$regex")
+
+separatedDefinition=$(sed ':a;N;$!ba;s/\n/\n\n/g' <<< "$definitions")
+
+notify-send -t 30000 -h string:bgcolor:#ffffff -h string:fgcolor:#000000 -a "word-lookup" "$word" "$separatedDefinition" -i ~/.config/dunst/dict 
+}
+#}}} <#3634
+#{{{ >>>   TEST >#3635
+extract_url_to_url2_to_mediafile() { 
+
+read -p "URL1: >>>  " URL1 
+
+URL2=$(curl -sL -A "$USER_AGENT" $URL1|grep https|sed 's!.*https!https!g'|grep "m3u8"|rev|cut -c4-300|rev)
+URL3=$(curl -sL -A "$USER_AGENT" $URL2|grep hls|sort -u|head -n1)
+yt-dlp $(echo $URL2|sed 's!hls.m3u8!$(echo $URL3)!')
+}
+#}}} <#3644
+#{{{ >>>   media_lenght >#3645
+media_lenght() {
+    ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=0 $1 |sed 's/.*=//g'|sed 's/[.].*$//g'
+}
+#}}} <#3649
+#{{{ >>>   scpt >#3650
+vims() {
+    AA="$(( $(ls *.script|wc -l) + 1 ))"
+    vim $1.script
+    $(cat $1.script)
+}
+#}}} <#3656
+#{{{ >>>   put_in_quote >#3657
+put_in_quote() {
+echo $@|awk '{print "\""$1"\""}'
+}
+#}}} <#3661
+#{{{ >>>   make_html_list >#3662
+make_html_list() {
+    if [[ -f list1 ]]; then
+	rm list1 2>/dev/null
+fi
+if [[ -f list2 ]]; then
+	rm list2 2>/dev/null
+fi
+if [[ -f list3 ]]; then
+	rm list3 2>/dev/null
+fi
+for i in $($@); do 
+	echo -e $i|sed 's/^/<li><a href="file:\/\/\/home\/batan\//g'|sed 's/$/">/g' >>list1
+	echo -e $i|rev|sed 's/[/].*$//g'|rev|sed 's/$/<\/a><\/li>/g' >>list2
+	done
+
+paste -d '' list1 list2 >list3
+rm list1 list2
+cat list3
+}
+#}}} <#3682
+#{{{ >>>   lc-dmenu >#3683
+lc-dmenu() {
+OPTIONS="firefox\nfalkon\nungoogled\nchromium\nthunar\nkitty\nxfce4-terminal\nalacritty\nbeachbit\nsweeper\nmx-cleanup\ncubic\ngnome-boxes\nlauncher\nnotes\nfeatherpad"
+selected=$(echo -e "${OPTIONS[@]}" |dmenu -nb "#222e50" -sf "#fccb06" -sb "#000000" -nf "#edf7f6" -fn ShareTech -b  -l 16 )
+case $selected in
+    "firefox") nohup firefox  & ;;
+    "falkon") nohup falkon  & ;;
+    "ungoogled") nohup flatpak run io.github.ungoogled_software.ungoogled_chromium   & ;;
+    "chromium") nohup chromium  & ;;
+    "thunar") nohup thunar  & ;;
+    "kitty") nohup kitty  & ;;
+    "xfce4-terminal") nohup xfce4-terminal  & ;;
+    "alacritty") nohup alacritty  & ;;
+    "beachbit") nohup sudo beachbit  & ;;
+    "sweeper") nohup sudo sweeper  & ;;
+    "mx-cleanup") nohup sudo mx-cleanup  & ;;
+    "cubic") nohup cubic  & ;;
+    "gnome-boxes") nohup gnome-boxes  & ;;
+    "launcher") nohup sudo -u batan bash /home/batan/.config/i3/launcher/launcher.sh  & ;;
+    "notes") nohup xfce4-terminal -e "vim /home/batan/.task/notes/note.wiki"  & ;;
+    "featherpad") nohup featherpad  & ;;
+esac
+}
+#}}} <#3706
+#{{{ >>>   install_xorg_i3_gpt >#3707
+install_xorg_i3_gpt() {
+set -e
+
+echo "Updating system..."
+sudo apt update && sudo apt full-upgrade -y
+
+echo "Installing Xorg and i3 minimal setup..."
+sudo apt install -y \
+    xserver-xorg-core xserver-xorg-video-all xserver-xorg-input-all \
+    xinit x11-xserver-utils \
+    i3-wm i3status i3lock suckless-tools \
+    lightdm lightdm-gtk-greeter \
+    lxappearance feh dmenu fonts-dejavu \
+    pulseaudio pavucontrol \
+    xterm
+
+echo "Setting up ~/.xinitrc..."
+cat > ~/.xinitrc <<EOF
+exec i3
+EOF
+
+echo "Done. You can now run 'startx' or enable LightDM:"
+echo "  sudo systemctl enable lightdm"
+
+
+}
+#}}} <#3734
+#{{{ >>>   lc-get_total_pkg_size  >#3735
+
+lc-get_total_pkg_size() {
+    #!/bin/bash
+
+get_total_pkg_size() {
+    local file="$1"
+    local total=0
+if [[ $1 == "" ]]; then
+	echo -e "\033[33mUsage: \033[37mlc-get_total_pkg_size \033[35m<file>\033[0m"
+fi
+    while IFS= read -r pkg; do
+        [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue
+        size=$(apt-cache show "$pkg" 2>/dev/null | awk '/^Size:/ {print $2}' | head -n1)
+        [[ "$size" =~ ^[0-9]+$ ]] && (( total += size ))
+    done < "$file"
+
+    echo -e"Total download size:\033[32m $(numfmt --to=iec --suffix=B $total) \033[0m"
+}
+
+get_total_pkg_size "$1"
+
+}
+
+#}}} <#3759
+#{{{ >>>   format_usb_ext >#3760
+format_usb_ext() {
+printf "d\no\nn\np\n\n\ny\nw\n" | sudo fdisk /dev/sdc
+printf "y\n"|sudo mkfs.ext4 -L "$USB" /dev/sdc1
+}
+#}}} <#3765
+##{{{ >>>   format_usb_vfat >#3766
+format_usb_vfat() {
+printf "d\no\nn\np\n\n\ny\nt\nL\n0c\nw\n" | sudo fdisk /dev/sdc
+printf "y\n"|sudo mkfs.vfat -F32 -n "$USB" /dev/sdc1
+}
+#}}} <#3771
+#{{{ >>>   list_folds >#3772
+list_folds() {
+ AAA=$(cat ~/.bashrc.functions|grep "() {"|sed 's/() {//g'|sed 's!\t!!g'|fzf --multi)
+ for func in ${AAA[@]}; do
+     eval $func
+ done
+}
+#}}} <#3779
+#{{{ >>>   list_directories >#3780
+list_directories() {
+DIRBASEMED="/media/batan/100"
+DIRMEDS=$(find $DIRBASEMED -maxdepth 1 -type d)
+DIRMEDN=$(find $DIRBASEMED -maxdepth 1 -type d|wc -l)
+for dir in ${DIRMEDS[@]}; do echo -e "\033[32m$dir\033[0m"; done
+
+DIRBASEHOME="/home/batan"
+DIRHOMES=$(find $DIRBASEHOME -maxdepth 1 -type d)
+DIRHOMEN=$(find $DIRBASEHOME -maxdepth 1 -type d|wc -l)
+for dir in ${DIRHOMES[@]}; do echo -e "\033[32m$dir\033[0m"; done
+
+DIRBASEMED2="/media/batan/200"
+DIRMED2S=$(find $DIRBASEMED2 -maxdepth 1 -type d)
+DIRMED2N=$(find $DIRBASEMED2 -maxdepth 1 -type d|wc -l)
+for dir in ${DIRMED2S[@]}; do echo -e "\033[32m$dir\033[0m"; done
+
+DIRBASECONF="/home/batan/.config"
+DIRCONFS=$(find $DIRBASECONF -maxdepth 1 -type d)
+DIRCONFN=$(find $DIRBASECONF -maxdepth 1 -type d|wc -l)
+for dir in ${DIRCONFS[@]}; do echo -e "\033[32m$dir\033[0m"; done
+
+
+DIRBASEDISK="/disk"
+DIRDISKS=$(find $DIRBASEDISK -maxdepth 1 -type d)
+DIRDISKN=$(find $DIRBASEDISK -maxdepth 1 -type d|wc -l)
+for dir in ${DIRDISKS[@]}; do echo -e "\033[32m$dir\033[0m"; done
+
+}
+#}}} <#3802
+#{{{ >>>   install_hosts >#3803
+install_hosts() {
+git clone https://github.com/batann/lchosts.git
+sudo mv lchosts/lc-hosts /usr/bin/lc-hosts
+sudo chmod +x /usr/bin/lc-hosts
+sudo mv /etc/hosts /etc/hosts.org
+sudo mv lchosts/host.1 /etc/host.1
+sudo mv lchosts/host.2 /etc/host.2
+sudo /usr/bin/lc-hosts
+}
+#}}} <#3813
+#{{{ >>>   write_watch >#3814
+write_watch() {
+xclip -o >> ~/.task/notes/note.watch.md
+}
+#}}} <#3818
+#{{{ >>>   write_watch >#3819
+read_watch() {
+mdv  ~/.task/notes/note.watch.md
+}
+#}}} <#3823
+
+#{{{ >>>   lc-playlist >#3825
+lc-playlist() {
+    mpv --no-terminal --ytdl-format='bestvideo[height<=480]+bestaudio/best[height<=480]' "$@"
+}
+#}}} <#3829
+#{{{ >>>   menu_cd >#3830
+menu_cd() {
+# ─── Settings ─────────────────────────────────────────────────────
+max_visible=1
+selected=0
+offset=0
+search_string=""
+SSS="Search"
+# ─── Load Directories ─────────────────────────────────────────────
+list_directories() {
+  local base_dirs=(
+    "/media/batan/100"
+    "/home/batan"
+    "/media/batan/200"
+    "/home/batan/.config"
+  )
+  local all=()
+  for base in "${base_dirs[@]}"; do
+    find "$base" -mindepth 1 -maxdepth 1 -type d 2>/dev/null
+  done
+}
+
+mapfile -t all_items < <(list_directories)
+# Prepend "Search:" to the array
+all_items=("$(echo -e $SSS)" "${all_items[@]}")
+# ─── Filter Matches ───────────────────────────────────────────────
+filter_items() {
+  visible_items=()
+  for item in "${all_items[@]}"; do
+    if [[ "${item,,}" == *"${search_string,,}"* ]]; then
+      visible_items+=("$item")
+    fi
+  done
+}
+
+# ─── Draw Menu ────────────────────────────────────────────────────
+draw_menu() {
+  tput cup 4 0;tput el;tput cup 3 0
+  echo ""
+  local start=$offset
+  local end=$(( offset + max_visible ))
+  for i in "${!visible_items[@]}"; do
+    (( i < start || i >= end )) && continue
+    line="${visible_items[i]}"
+    display="${line: -15}"  # last 15 characters of path
+    prefix="   "; (( i == selected )) && prefix="──▶ "
+    echo -e "\033[0G\033[48;5;18m$prefix \033[34m$display                   \033[0m"
+  done
+}
+# ─── Initial State ────────────────────────────────────────────────
+filter_items
+if (( selected >= ${#visible_items[@]} )); then
+  selected=$(( ${#visible_items[@]} - 1 ))
+fi
+(( selected < 0 )) && selected=0
+# ─── Main Loop ────────────────────────────────────────────────────
+while true; do
+  draw_menu
+  IFS= read -rsn1 key
+
+  if [[ $key == $'\x1b' ]]; then
+    read -rsn2 rest
+    key+="$rest"
+    case "$key" in
+      $'\x1b[A') (( selected > 0 )) && ((selected--)) ;;
+      $'\x1b[B') (( selected < ${#visible_items[@]} - 1 )) && ((selected++)) ;;
+    esac
+  elif [[ $key == $'\x7f' ]]; then
+      if [[ -n "$search_string" ]]; then
+    search_string="${search_string::-1}"
+    filter_items
+    selected=0
+    offset=0
+      fi
+  elif [[ "$key" =~ [a-zA-Z0-9] ]]; then
+    search_string+="$key"
+    filter_items
+    selected=0
+    offset=0
+  elif [[ $key == "" ]]; then  # Enter key
+      if [[ "${visible_items[selected]}" == "Search" ]]; then
+          echo AAA;read -n1 aaaaa
+      fi
+    [[ ${#visible_items[@]} -gt 0 ]] && cd "${visible_items[selected]}"
+    break
+  elif [[ $key == "q" ]]; then
+    break
+  fi
+
+  (( selected < offset )) && offset=$selected
+  (( selected >= offset + max_visible )) && offset=$(( selected - max_visible + 1 ))
+done
+}
+
+search_menu() {
+    if [[ $SEARCH = "" ]]; then
+        menu_cd
+    fi
+
+}
+
+#}}} <#3931
+#{{{ >>>   get_coursor_pos  >#3932
+get_coursor_pos() {
+    # Send the ANSI code to query cursor position
+echo -en "\033[6n" > /dev/tty
+    # Read the response
+    IFS=R read -r -d R RESPONSE
+	    stty echo
+		    # Parse the row/col
+    ROW=${RESPONSE#*[}
+    COL=${ROW#*;}
+    ROW=${ROW%;*}
+    # Save position
+    CURSOR_POS="\033[${ROW};${COL}H"
+}
+#}}} <#3946
+#{{{ >>>   execute_script
+execute_script() {
+FILE="$1.temp.sh"
+touch "$FILE"
+chmod +x "$FILE"
+vim "$FILE"
+bash "$FILE"
+}
+#}}}
+#{{{ >>>   append_time
+append_time() {
+COUNT="7"; for x in $(seq 3 3 48); do echo -e "from $COUNT $(( $COUNT + 1 )) append to line \033[32m$x\033[0m" && ((COUNT++));done    
+    
+}
+#}}}
+#{{{ >>>   dayplanner
+dayplanner() {
+cat /home/batan/.lcconfig/calendar/dayplanner.md    
+}
+#}}}
+#{{{ >>>   lcopenbox
+lcopenbox() {
+echo -e "--help             \n --version          \n --replace          \n --config-file FILE \n --sm-disable       \n --reconfigure      \n --restart          \n --exit             \n --sync             \n --startup CMD      \n --debug            \n --debug-focus      \n --debug-session    \n --debug-xinerama   \n"|dmenu -b -l 10 -i -p "openbox" | xargs openbox
+}
+#}}}
+#{{{ >>>   stopwatch
+stopwatch() {
+BB="1" && AA=$(date +%s) && while :; do clear && echo $AA && echo $BB && ((BB++)) && echo $(date -d@$AA +%H:%M:%S) && echo $(date -d@$(( $(date +%s) + 1 )) +%H:%M:%S) && sleep 0.9 ;done    
+    
+}
+#}}}
+get_install() {
+	getfold functions.install $(cat functions.install |grep "() {"|sed 's/[(].*$//g'|dmenu -b -l 20) && cat temp | xclip -selection clipboard
+	}
+
+
+bbb() {
+echo -e "\033[2A\033[20G\033[32m" && read abc && echo $@| GREP_COLORS='mt=01;31' grep --color=always -E "$abc|$" 
+}
+
+
+
+#}}} <#3802
+#{{{ >>>   install_hosts >#3803
+install_hosts() {
+git clone https://github.com/batann/lchosts.git
+sudo mv lchosts/lc-hosts /usr/bin/lc-hosts
+sudo chmod +x /usr/bin/lc-hosts
+sudo mv /etc/hosts /etc/hosts.org
+sudo mv lchosts/host.1 /etc/host.1
+sudo mv lchosts/host.2 /etc/host.2
+sudo /usr/bin/lc-hosts
+}
+#}}} <#3813
+#{{{ >>>   write_watch >#3814
+write_watch() {
+xclip -o >> ~/.task/notes/note.watch.md
+}
+#}}} <#3818
+#{{{ >>>   write_watch >#3819
+read_watch() {
+mdv  ~/.task/notes/note.watch.md
+}
+#}}} <#3823
+#{{{ >>>   install_shiori
+install_shiori() {
+	wget https://github.com/go-shiori/shiori/releases/download/v1.7.4/shiori_Linux_x86_64_1.7.4.tar.gz
+	tar vfxz shiori_Linux_x86_64_1.7.4.tar.gz
+	sudo cp shiori /usr/bin/lc-shiori
+	sudo chmod +x /usr/bin/lc-*
+	lc-shiori completion bash > ashiori
+	sudo chown 0:0 ashiori
+	sudo mv ashioru /etc/bash_completion.d/shiori
+	wget https://addons.mozilla.org/firefox/downloads/file/4464707/shiori_ext-1.7.4.0.xpi
+	 printf "Defaults\033[32m=\033[0mshiori\033[32m:\033[0mgopher\n"
+
+}
+#}}}
+
+#{{{ >>>   lc-ls
+lc-ls() {
+ AA="─"
+ BB=""
+ for x in $(seq 1 $(tput cols)); do 
+	 BB="$BB$AA" 
+	 done
+
+clear
+echo -e "\033[38;5;39m$BB\033[0m"
+echo -e "\033[1A\033[10G \033[37mDirectories \033[0m"
+echo -e "\033[33m$(find . -maxdepth 1 -type d|sed 's/\.\///g'|head -n20)\033[0m"
+echo -e "\033[38;5;39m$BB\033[0m"
+echo -e "\033[1A\033[10G \033[37mFiles       \033[0m"
+    echo -e "\033[34m$(ls -pt|grep -vE "/|ytdl|part"|head -n20)"
+echo -e "\033[38;5;39m${BB}\n\033[1A                        \033[1B\n\033[38;5;39m$BB\033[3A\033[0m"
+
+}
+#}}}
+
+#{{{ >>>   lc-playlist >#3825
+lc-playlist() {
+    mpv --no-terminal --ytdl-format='bestvideo[height<=480]+bestaudio/best[height<=480]' "$@"
+}
+#}}} <#3829
+#{{{ >>>   menu_cd >#3830
+menu_cd() {
+# ─── Settings ─────────────────────────────────────────────────────
+max_visible=1
+selected=0
+offset=0
+search_string=""
+SSS="Search"
+# ─── Load Directories ─────────────────────────────────────────────
+list_directories() {
+  local base_dirs=(
+    "/media/batan/100"
+    "/home/batan"
+    "/media/batan/200"
+    "/home/batan/.config"
+  )
+  local all=()
+  for base in "${base_dirs[@]}"; do
+    find "$base" -mindepth 1 -maxdepth 1 -type d 2>/dev/null
+  done
+}
+
+mapfile -t all_items < <(list_directories)
+# Prepend "Search:" to the array
+all_items=("$(echo -e $SSS)" "${all_items[@]}")
+# ─── Filter Matches ───────────────────────────────────────────────
+filter_items() {
+  visible_items=()
+  for item in "${all_items[@]}"; do
+    if [[ "${item,,}" == *"${search_string,,}"* ]]; then
+      visible_items+=("$item")
+    fi
+  done
+}
+
+# ─── Draw Menu ────────────────────────────────────────────────────
+draw_menu() {
+  tput cup 4 0;tput el;tput cup 3 0
+  echo ""
+  local start=$offset
+  local end=$(( offset + max_visible ))
+  for i in "${!visible_items[@]}"; do
+    (( i < start || i >= end )) && continue
+    line="${visible_items[i]}"
+    display="${line: -15}"  # last 15 characters of path
+    prefix="   "; (( i == selected )) && prefix="──▶ "
+    echo -e "\033[0G\033[48;5;18m$prefix \033[34m$display                   \033[0m"
+  done
+}
+# ─── Initial State ────────────────────────────────────────────────
+filter_items
+if (( selected >= ${#visible_items[@]} )); then
+  selected=$(( ${#visible_items[@]} - 1 ))
+fi
+(( selected < 0 )) && selected=0
+# ─── Main Loop ────────────────────────────────────────────────────
+while true; do
+  draw_menu
+  IFS= read -rsn1 key
+
+  if [[ $key == $'\x1b' ]]; then
+    read -rsn2 rest
+    key+="$rest"
+    case "$key" in
+      $'\x1b[A') (( selected > 0 )) && ((selected--)) ;;
+      $'\x1b[B') (( selected < ${#visible_items[@]} - 1 )) && ((selected++)) ;;
+    esac
+  elif [[ $key == $'\x7f' ]]; then
+      if [[ -n "$search_string" ]]; then
+    search_string="${search_string::-1}"
+    filter_items
+    selected=0
+    offset=0
+      fi
+  elif [[ "$key" =~ [a-zA-Z0-9] ]]; then
+    search_string+="$key"
+    filter_items
+    selected=0
+    offset=0
+  elif [[ $key == "" ]]; then  # Enter key
+      if [[ "${visible_items[selected]}" == "Search" ]]; then
+          echo AAA;read -n1 aaaaa
+      fi
+    [[ ${#visible_items[@]} -gt 0 ]] && cd "${visible_items[selected]}"
+    break
+  elif [[ $key == "q" ]]; then
+    break
+  fi
+
+  (( selected < offset )) && offset=$selected
+  (( selected >= offset + max_visible )) && offset=$(( selected - max_visible + 1 ))
+done
+}
+
+search_menu() {
+    if [[ $SEARCH = "" ]]; then
+        menu_cd
+    fi
+
+}
+
+#}}} <#3931
+#{{{ >>>   get_coursor_pos  >#3932
+get_coursor_pos() {
+    # Send the ANSI code to query cursor position
+echo -en "\033[6n" > /dev/tty
+    # Read the response
+    IFS=R read -r -d R RESPONSE
+	    stty echo
+		    # Parse the row/col
+    ROW=${RESPONSE#*[}
+    COL=${ROW#*;}
+    ROW=${ROW%;*}
+    # Save position
+    CURSOR_POS="\033[${ROW};${COL}H"
+}
+#}}} <#3946
+#{{{ >>>   execute_script
+execute_script() {
+FILE="$1.temp.sh"
+touch "$FILE"
+chmod +x "$FILE"
+vim "$FILE"
+bash "$FILE"
+}
+#}}}
+#{{{ >>>   append_time
+append_time() {
+COUNT="7"; for x in $(seq 3 3 48); do echo -e "from $COUNT $(( $COUNT + 1 )) append to line \033[32m$x\033[0m" && ((COUNT++));done    
+    
+}
+#}}}
+#{{{ >>>   dayplanner
+dayplanner() {
+cat /home/batan/.lcconfig/calendar/dayplanner.md    
+}
+#}}}
+#{{{ >>>   lcopenbox
+lcopenbox() {
+echo -e "--help             \n --version          \n --replace          \n --config-file FILE \n --sm-disable       \n --reconfigure      \n --restart          \n --exit             \n --sync             \n --startup CMD      \n --debug            \n --debug-focus      \n --debug-session    \n --debug-xinerama   \n"|dmenu -b -l 10 -i -p "openbox" | xargs openbox
+}
+#}}}
+#{{{ >>>   stopwatch
+stopwatch() {
+BB="1" && AA=$(date +%s) && while :; do clear && echo $AA && echo $BB && ((BB++)) && echo $(date -d@$AA +%H:%M:%S) && echo $(date -d@$(( $(date +%s) + 1 )) +%H:%M:%S) && sleep 0.9 ;done    
+    
+}
+#}}}
+get_install() {
+	getfold functions.install $(cat functions.install |grep "() {"|sed 's/[(].*$//g'|dmenu -b -l 20) && cat temp | xclip -selection clipboard 
+	xclip -o
+}
+
+bbb() {
+	echo -e "\033[2A\033[20G\033[32m" && read abc && echo $@| GREP_COLORS='mt=01;31' grep --color=always -E "$abc|$"
+	}
+
+if [[ ! -d temp ]]; then
+	touch temp
+fi
+AA="─"
+for x in $(seq 1 $(( $(( $(tput cols) / 3 )) - 10 ))); do BB="$BB$AA";done
+#{{{ >>>   vimx
+vimx() {
+	nvim $1 &&
+	
+	if [[ $1 == "*.sh" ]]; then
+		sudo -u batan bash $1
+	elif [[ $1 == "*.py" ]]; then
+	python3 $1
+elif [[ $1 == "*.html" ]]; then
+	$BROWSER $1
+	fi
+	}
+#}}}
+#{{{ >>>   box
+    box() {
+        echo "────────────────────────────────────────────"
+        }
+        
+#}}}
+#{{{ >>>   lc-today-find
+lc-today-find() {
+AAA=$(($(date +%s) - $(who -u | awk -v user="$USER" '$1 == user { print $3, $4 }' | head -n1 | xargs -I{} date -d "{}" +%s)))
+AAA=$((AAA / 60))
+OO=""
+OO="\033[36m${COLS}\033[0m"
+find . -maxdepth 1 -type f -cmin -"$AAA" -mmin -"$AAA" -printf "%f\n" | awk -v separator="$OO" '
+/^\./ { dotfiles[NR] = $0; next }
+       { files[NR] = $0 }
+END {
+    print separator
+    for (i in dotfiles) print dotfiles[i]
+    if (length(dotfiles) > 0) print separator
+    for (i in files) print files[i]
+}'
+echo -e "\n\n$OO\033[4A$OO"
+
+}
+#}}}
+#{{{ >>>   lc-termpty
+lc-termpty() {
+yesandno() {
+    # Define options and corresponding commands
+    OPTIONS=("Yes" "No")
+    COMMANDS=("YESNO=1" "YESNO=0")
+    NUM_OPTIONS=${#OPTIONS[@]}
+
+    tput civis  # Hide cursor
+
+# Function to display options horizontally
+DISPLAY_OPTIONS() {
+    tput setab 4; tput setaf 7
+    echo -ne "\033[1G"  # Move cursor to beginning of the line
+    for ((i=0; i<NUM_OPTIONS; i++)); do
+        if [[ $i -eq $selected ]]; then
+            echo -ne "\e[7m ${OPTIONS[i]} \e[27m "  # Highlight selected option
+        else
+            echo -n " ${OPTIONS[i]} "
+        fi
+    done
+    tput sgr0
+}
+# Function to execute selected command
+EXECUTE_COMMAND() {
+  eval "${COMMANDS[selected]}"
+  return 0
+ 
+}
+
+selected=0
+DISPLAY_OPTIONS
+
+# Main loop
+while true; do
+    IFS= read -rsn1 key
+    if [[ $key == $'\e' ]]; then
+        read -rsn2 key  # Read next two characters
+        case $key in
+            '[D')  ((selected--)) ;;  # Left
+            '[C')  ((selected++)) ;;  # Right
+        esac
+    elif [[ $key == "" ]]; then
+        EXECUTE_COMMAND
+        break
+    fi
+
+    ((selected = (selected + NUM_OPTIONS) % NUM_OPTIONS))
+    DISPLAY_OPTIONS
+done
+
+
+tput cnorm  # Restore cursor visibility
+}
+
+# Step 1: Start terminal with socat PTY
+xfce4-terminal --geometry=200x40-0-0 --hold -e "socat -d -d PTY,link=/tmp/mytermpty,raw,echo=0 -" &
+# Give socat a moment to create PTY
+sleep 0.5
+# Step 2: Start a bash shell connected to the PTY
+script -qfc bash /tmp/mytermpty &
+sleep 
+echo -e "\033c" >/tmp/mytermpty
+clear
+echo -e "\033[36mDisplay Command Output ?\033[0m   "
+yesandno
+if [[ $YESNO == "1" ]];then
+echo -e "\033[36mDisplay Command: \033[35m>>>\033[0m   "
+read INPUT
+echo -e "$($INPUT)" >/tmp/mytermpty
+else
+echo -e "\033[36mText to Display: \033[35m>>>\033[0m   "
+read INPUT
+echo -e "$INPUT" >/tmp/mytermpty
+fi
+
+
+}
+#}}}
+#{{{ >>>   dynamic_cols
+dynamic_cols() {
+# Dynamic Cols
+COLS=""
+ AA="─"
+ BB=""
+ for x in $(seq 1 $(tput cols)); do 
+	 COLS="${COLS}${AA}" 
+	 done
+ }
+    
+    
+
+#}}}
+#{{{ >>>   embed_thumbs
+embed_thumbs() {
+  local WIDTH=220
+  local HEIGHT=320
+  local SEEK_TIME="00:00:06"
+
+  for video in *.mp4; do
+    [[ -e "$video" ]] || continue
+
+    local base="${video%.mp4}"
+    local thumb="${base}.png"
+    local output="${base}_with_thumb.mp4"
+
+    echo "Processing: $video"
+
+    ffmpeg -y -ss "$SEEK_TIME" -i "$video" -frames:v 1 -q:v 2 "$thumb"
+
+    convert "$thumb" -resize ${WIDTH}x${HEIGHT}^ -gravity center -crop ${WIDTH}x${HEIGHT}+0+0 +repage "$thumb"
+
+    ffmpeg -y -i "$video" -i "$thumb" \
+      -map 0 -map 1 \
+      -disposition:v:1 attached_pic \
+      -c copy "$output"
+
+    echo "✅ Created: $output"
+  done
+    
+}
+#}}}
+

@@ -1,0 +1,312 @@
+# vim:fileencoding=utf-8:foldmethod=marker
+
+#{{{ test PS1
+# 🧠 Helper function to show git branch
+#parse_git_branch() {
+#    git branch 2>/dev/null | sed -n '/\* /s///p'
+#}
+
+# 🧠 CPU temperature (Linux only)
+#get_cpu_temp() {
+#    if [[ -f /sys/class/thermal/thermal_zone0/temp ]]; then
+#        awk '{printf "%.1f°C", $1/1000 }' /sys/class/thermal/thermal_zone0/temp
+#    else
+#        echo "N/A"
+#    fi
+#}
+#
+## 🧠 Return prompt only if last command failed
+#exit_status() {
+#   [[ $? -ne 0 ]] && echo -e "\[\e[91m\]⚠ $?\[\e[0m\]"
+#}
+#
+
+
+# 🌈 Set PS1 dynamically
+#export PS1='\[\e[38;5;39m$COLS \
+#\[\e[38;5;208m\]\D{%H:%M:%S} \
+#\[\e[37m\]\u\033[34m@\033[37m\h\033[34m >>>\033[0m '
+
+
+#\[\e[38;5;70m\]\W\
+#\[\e[38;5;196m\]$(exit_status)\
+#\[\e[38;5;208m\] [CPU: $(get_cpu_temp)]\
+#\[\e[0m\] \$ '
+
+############################################################################
+#}}}
+#{{{ >>>   lc-rename-according-to-dir
+lc-rename-according-to-dir() {
+
+clear
+lc-ls
+echo -e "\033[1;36mAll Files \033[0m(in Base and all its sub-directories)\033[1;36m will be renamed \0333[0m(mp4)"
+read -p "Please provide BaseDirectory: >>>   " DDIR
+
+
+lcrenamemedia() {
+#ls $1 | while read filename; do
+# vim:fileencoding=utf-8:foldmethod=marker
+
+#Template:
+echo -e "\x1b[1;31m   \x1b[2;37;41m   \033[0m"
+
+#{{{ >>>   variables >#8
+COUNTER="1"
+DIRNAME=$(echo $1|sed 's:/*$::; s:.*/::')
+#}}} <#11
+#{{{ >>>   ensure user has provided a directory --- change to intergrate with a  broader script >#12
+if [[ ! -d $1 ]]; then
+    echo "$1 is not a directory"
+    exit 1
+fi
+#}}} <#17
+#{{{ >>>   remove whitespace and remove _ >#18
+
+find $1 -maxdepth 1 -type f -name "* *" -exec bash -c 'mv "$0" "${0// /_}"' {} \; 
+find $1 -maxdepth 1 -type f -name "*_*" -exec bash -c 'mv "$0" "${0//_/}"' {} \;
+
+echo -e "\x1b[1;31mRemoved Whilespac\x1b[2;37;41m   \033[0m"
+read -n1 -p "Enter [ANY] to continue..." mmm
+#}}} <#25
+#{{{ >>>   rename to number >#26
+for x in $(find $1 -type f -exec stat --format="%s %n" {} + | sort -nr |awk '{print $2}'); do 
+    mv "$x" "$1/${COUNTER}.mp4"
+ ((COUNTER++))
+done
+COUNTER="1"
+echo -e "\x1b[1;31mTo avoid conflicting names, renamed to munbers\x1b[2;37;41m   \033[0m"
+read -n1 -p "Enter [ANY] to continue..." mmm
+#}}} <#34
+#{{{ >>>   rename to indexed directory names with extention >#35
+for x in $(find $1 -type f -exec stat --format="%s %n" {} + | sort -nr |awk '{print $2}'); do 
+    mv "$x" "$1/${DIRNAME}.${COUNTER}.mp4"
+ ((COUNTER++))
+done
+echo -e "\x1b[1;31mRenamed to indexed names based on the directory name\x1b[2;37;41m   \033[0m"
+
+}
+
+for DIR in $(ls -d $DDIR/*/); do lcrenamemedia $DIR && echo $DIR ;done
+#}}} <#41
+
+
+
+
+
+}
+#}}}
+#{{{ >>>   cd_hook
+cd_hook() {
+    if [[ "$PWD" != "$LAST_PWD" ]]; then
+        LAST_PWD="$PWD"
+        lc-ls
+    fi
+}
+#}}}
+
+
+
+#{{{ >>> lc-rollback-tui >#3457
+lc-rollback-tui() {
+    local log="$HOME/.bashrc.log"
+    local backupdir="$HOME/lcbackups"
+    local entries temp selected dir confirm backup
+
+    [[ ! -s "$log" ]] && {
+        echo "No pending changes." >&2
+        return 1
+    }
+
+    temp=$(mktemp)
+    grep 'CHANGES-PENDING' "$log" | nl -w2 -s': ' > "$temp"
+
+    exec 3>&1
+    selected=$(dialog --clear --backtitle "LC Change Tracker" \
+        --title "Pending Changes" \
+        --menu "Select target to rollback" 20 70 10 \
+        $(awk -F': ' '{print $1, $2}' "$temp") \
+        2>&1 1>&3)
+    exec 3>&-
+
+    [[ -z "$selected" ]] && return 1
+
+    dir=$(awk -F': ' -v n="$selected" '$1 == n {print $2}' "$temp" | cut -d' ' -f2)
+    rm -f "$temp"
+
+    confirm=$(dialog --clear --yesno "Rollback directory?\n\n$dir" 10 50; echo $?)
+    [[ "$confirm" != 0 ]] && return 1
+
+    backup=$(ls -t "$backupdir"/"$(basename "$dir")"-*.tar.xz 2>/dev/null | head -n1)
+    [[ -z "$backup" ]] && {
+        dialog --msgbox "No backup found for $dir" 7 40
+        return 1
+    }
+
+    tar -xJf "$backup" -C "$(dirname "$dir")"
+    sed -i "\|$dir|d" "$log"
+
+    dialog --msgbox "Rollback complete.\nRestored from:\n$backup" 10 60
+}
+
+
+
+
+############################################################################
+#{{{ >>> create_lclog >#3450
+create_lclog() {
+    local target="${1:-.}"
+    local logfile="$target/.lclog"
+    local timestamp
+    timestamp=$(date +"%Y-%m-%dT%H:%M:%S")
+
+    if [[ ! -d "$target" ]]; then
+        echo "Invalid target directory: $target" >&2
+        return 1
+    fi
+
+    {
+        echo "# .lclog created $timestamp"
+        echo "# Target: $target"
+        echo "# --- FILES & DIRS ---"
+        find "$target" -mindepth 1 -not -type l \
+            -printf '%P\n' | sort
+        echo "# --- END ---"
+    } > "$logfile"
+}
+
+
+
+############################################################################
+
+#{{{ >>> diff_lclog >#3451
+diff_lclog() {
+    local target="${1:-.}"
+    local logfile="$target/.lclog"
+    local current
+    current=$(mktemp)
+
+    if [[ ! -f "$logfile" ]]; then
+        echo "No .lclog found in $target"
+        return 1
+    fi
+
+    find "$target" -mindepth 1 -not -type l -printf '%P\n' | sort > "$current"
+    diff -u "$logfile" "$current"
+    rm -f "$current"
+}
+
+############################################################################
+
+
+#{{{ >>> LC Init Trigger >#3452
+if [[ -f ~/.bashrc.log ]]; then
+    if grep -q 'CHANGES-PENDING' ~/.bashrc.log; then
+        echo -e "\e[31m[!] System changes pending. Press any key...\e[0m"
+        lc-flasher
+        read -n1 -s
+    fi
+fi
+
+
+
+
+
+#{{{ >>> lc-change >#3453
+lc-change() {
+    local target="$1"; shift
+    local cmd="$*"
+    local timestamp backupdir backupfile
+
+    if [[ -z "$target" || -z "$cmd" ]]; then
+        echo "Usage: lc-change <target-dir> <command>" >&2
+        return 1
+    fi
+
+    if [[ ! -d "$target" ]]; then
+        echo "Invalid target directory: $target" >&2
+        return 1
+    fi
+
+    timestamp=$(date +"%Y%m%dT%H%M%S")
+    backupdir="$HOME/lcbackups"
+    backupfile="$backupdir/$(basename "$target")-$timestamp.tar.xz"
+
+    mkdir -p "$backupdir" || return 1
+
+    echo "[*] Backing up $target to $backupfile"
+    tar -cJf "$backupfile" -C "$(dirname "$target")" "$(basename "$target")" --options xz:compression-level=9
+
+    echo "[*] Creating .lclog in $target"
+    create_lclog "$target"
+
+    echo "CHANGES-PENDING: $target at $timestamp" >> "$HOME/.bashrc.log"
+
+    echo "[*] Executing: $cmd"
+    bash -c "$cmd"
+}
+
+
+#{{{ >>> lc-rollback >#3454
+lc-rollback() {
+    local target="$1"
+    local backupdir="$HOME/lcbackups"
+    local last_backup
+
+    if [[ -z "$target" ]]; then
+        echo "Usage: lc-rollback <target-dir>" >&2
+        return 1
+    fi
+
+    last_backup=$(ls -t "$backupdir"/"$(basename "$target")"-*.tar.xz 2>/dev/null | head -n1)
+    if [[ -z "$last_backup" ]]; then
+        echo "No backup found for $target" >&2
+        return 1
+    fi
+
+    echo "[!] Rolling back $target from $last_backup"
+    tar -xJf "$last_backup" -C "$(dirname "$target")"
+    echo "[+] Rollback complete: $(basename "$last_backup")"
+}
+
+#{{{ >>> .bashrc auto-watcher >#3455
+if [[ -s ~/.bashrc.log ]]; then
+    echo -e "\e[33m[!] Pending LC changes detected:\e[0m"
+    grep 'CHANGES-PENDING' ~/.bashrc.log
+    echo -e "\e[36mRun: lc-review or lc-rollback <dir>\e[0m"
+    lc-flasher
+fi
+
+
+#{{{ >>> lc-review >#3456
+lc-review() {
+    grep 'CHANGES-PENDING' ~/.bashrc.log | while read -r line; do
+        local dir
+        dir=$(echo "$line" | cut -d: -f2 | xargs)
+        echo -e "\n\e[35m[>] Changes in: $dir\e[0m"
+        diff_lclog "$dir"
+    done
+}
+
+
+#AUTOMATIC CLEANUP
+
+find "$HOME/lcbackups" -name '*.tar.xz' -type f -mtime +30 -delete
+
+
+
+
+
+
+#{{{ >>> .bashrc auto-watcher >#3455
+if [[ -s ~/.bashrc.log ]]; then
+    echo -e "\e[33m[!] Pending LC changes detected:\e[0m"
+    grep 'CHANGES-PENDING' ~/.bashrc.log
+    echo -e "\e[36mRun: lc-review or lc-rollback <dir>\e[0m"
+    lc-flasher
+fi
+
+# inside your bashrc
+echo -e "\e[33m[!] Use \e[1mlc-rollback-tui\e[0m to inspect or revert.\e[0m"
+
+

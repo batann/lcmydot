@@ -1,0 +1,14 @@
+
+source_function() {
+file="/home/batan/lcbash/functions/functions"
+rm -f temp
+fname=$(grep -Po '#\{\{\{ >>>\s+\K\S+' "$file" | fzf)
+start=$(awk "/#{{{ >>> *$fname *>#[0-9]+/ { match(\$0, />#([0-9]+)/, m); print m[1]; exit }" "$file")
+end=$(grep -Po "#}}} <\#\K[0-9]+" "$file" | awk -v s="$start" '$1 > s { print; exit }')
+sed -n "${start},${end}p" "$file" >> temp
+cat temp >> xclip -selectiom clipboard
+source temp
+}
+
+
+

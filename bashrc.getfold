@@ -1,0 +1,48 @@
+getfold() {
+
+rm temp >/dev/null 2>&1
+# File containing folds
+file="$1"
+
+# The title you're looking for
+target_title="$2"
+
+if [[ $1 == '' ]]; then
+    echo -e "\033[32mCommand Example: \033[36m getfold [file] [folds title]\033[0m"
+elif [[ $2 == '' ]]; then
+    echo -e "\033[32mCommand Example: \033[36m getfold [file] [folds title]\033[0m"
+fi
+
+# Extract the content of the specific fold based on title
+fold_content=$(awk -v title="$target_title" '
+  # Look for the start of the fold
+  /#{{{/ {
+    in_fold = 0
+    # Check if the title matches
+    if ($0 ~ ">>> *" title) {
+      in_fold = 1
+  #    print "Found fold with title: " title
+    }
+  }
+
+  # Capture content inside the fold
+  in_fold && !/#}}}/ {
+    print
+  }
+
+  # Stop capturing at the end of the fold
+  /#}}}/ && in_fold {
+in_fold = 0
+  }
+' "$file")
+
+# If content was found, print it
+if [ -n "$fold_content" ]; then
+#  echo "Content of fold titled '$target_title':"
+  echo "$fold_content" >> temp
+  source temp
+else
+  echo "Fold with title '$target_title' not found."
+fi
+
+}

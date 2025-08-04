@@ -1,0 +1,20 @@
+# ~/.bashrc or sourced helper script
+#source /home/batan/lcbash/functions/functions
+dirpick() {
+  local dir
+  dir=$(
+    {
+      cat /home/batan/.bashrc.functions /home/batan/lcbash/functions/functions |grep "() {"|sed 's!() {!!g'|grep -vE "function|=| |#"|sed 's/\t//g'
+    } 2>/dev/null | fzf --prompt="Go to: " --height=60% --reverse
+  ) || return
+
+  # Insert selected directory into current shell line
+  READLINE_LINE="${READLINE_LINE:0:$READLINE_POINT}$dir${READLINE_LINE:$READLINE_POINT}"
+  READLINE_POINT=$(( READLINE_POINT + ${#dir} ))
+}
+dashboard() {
+  sudo -u batan bash /home/batan/LCCLIMENU/lc2-cli-menu
+}
+# Bind caret key (Ctrl-^) to run dirpick
+#bind -x '"\C-^":dirpick'
+bind -x '"\C-^":dashboard'

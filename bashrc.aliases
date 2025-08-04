@@ -1,0 +1,293 @@
+#!/bin/bash
+# vim:fileencoding=utf-8:foldmethod=marker
+PROMPT_COMMAND="if [[ \$OLDPWD2 != \$PWD ]]; then clear; lc-ls; OLDPWD2=\$PWD; fi"
+alias 1="sudo -u batan bash /home/batan/LCCLIMENU/./new2"
+getf() {
+    cat ~/.bashrc.functions|grep -v function|grep "() {"|sed 's!() {!!g'|sed 's/\t//g'
+    }
+
+gfiles() {
+  find . -maxdepth $2 -type f -name "*$1*"
+    }
+gdir() {
+  find . -maxdepth 3 -type d -name "*$1*"
+    }
+
+
+###   ALIASES   #########################################################################
+#{{{ >>>   ANSI CODE   ################################################################## >#18
+alias oo="clear && read -p ' pane >>>  ' abc && clear && read -p 'command >>>   ' bce && tmux send-keys -t$abc $bce  Enter"
+Black='\033[0;30m'
+Red='\033[0;31m'
+Green='\033[0;32m'
+Blue='\033[0;34m'
+Purple='\033[0;35m'
+Cyan='\033[0;36m'
+Yellow='\033[1;33m'
+White='\033[1;37m'
+#   ANSI CODE BACKGROUND  ##################################################################
+BBlue='\e[0;104m'
+BBlack='\e[0;100m'
+RRed='\e[0;100m'
+GGreen='\e[0;100m'
+YYellow='\e[0;100m'
+BBlue='\e[0;100m'
+PPurple='\e[0;100m'
+CCyan='\e[0;100m'
+WWhite='\e[0;100m'
+NC='\033[0m'
+#}}} <#39
+#{{{ >>>   export fzf >#40
+export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS \
+  --ansi \
+  --layout=reverse \
+  --border=none \
+  --color=bg+:#2e3c64 \
+  --color=bg:#1f2335 \
+  --color=border:#29a4bd \
+  --color=fg:#c0caf5 \
+  --color=gutter:#1f2335 \
+  --color=header:#ff9e64 \
+  --color=hl+:#2ac3de \
+  --color=hl:#2ac3de \
+  --color=info:#545c7e \
+  --color=marker:#ff007c \
+  --color=pointer:#ff007c \
+  --color=prompt:#2ac3de \
+  --color=query:#c0caf5:regular \
+  --color=scrollbar:#29a4bd \
+  --color=separator:#ff9e64 \
+  --color=spinner:#ff007c \
+"
+
+
+
+#}}} <#65
+#{{{ >>>   tmux >#66
+#alias 1='tmux new-session \; split-window -h \; split-window -v -p 66 \; split-window -v\; attach\;'
+alias 2='tmux new-session \; split-window -v \; split-window -h -p 66 \; split-window -h\; selectp -t1\; attach\;'
+alias tk='tmux kill-session'
+alias wo='terminator --geometry="1200x800+0+0 -b -e "tmux new-session 'vim' -c ':VimwikiIndex' \; split-window -h 'nvim' -c ':Calendar-view=days' \; split-window -v -p 20 'bwm-ng' \; attach\;"'
+alias woo='tmux new-session 'vim' -c ':VimwikiIndex' \;split-window -v -p 30 'bpytop';\ split-window -h 'vit' \; split-window -v -p 20 'bwm-ng' \; attach\;'
+alias 122='tmux new-session \; split-window -v \; split-window -h -p 33 \; selectp -t1\; attach \;'
+alias tod='tmux new-session 'vim' -c ':Calendar=view-day' \; split-window -h 'nvim' -c ':TW' \; split-window -h -p 20 \; selectp -t 1\;'
+alias sound='tmux new-session 'castero' \; split-window -v 'cmus' \; split-window -h -p 30 \; selectp -t 1\; attach \;'
+#}}} <#75
+#{{{ >>>   ddgr >#76
+alias dg='ddgr --noua -w github.com -n 10'
+alias dy='ddgr --noua -w youtube.com -n 10'
+alias dr='ddgr --noua -w reddit.com -n10'
+alias ds='ddgr --noua -w plato.stanford.edu'
+alias dp='ddgr --noua -w pypi.org'
+alias dl='ddgr --noua -w https://linuxgazzette.net'
+
+alias uu="xterm -geom 120x75+0+0 -e bash -c 'ddgr'"
+alias gg="xterm -geom 120x75+0+0 -e bash -c 'googler'"
+#}}} <#86
+#{{{ >>>   yt-dlp >#87
+alias yt3="/home/batan/.local/bin/yt-dlp --config-locations /home/batan/.config/yt-dlp/yt-dlp.mp3.conf"
+alias yt4="/home/batan/.local/bin/yt-dlp --config-locations /home/batan/.config/yt-dlp/yt-dlp.mp4.conf"
+#}}} <#90
+#{{{ >>>   megatools >#91
+alias mg='megaget'
+alias mp='megaput'
+alias ml='megals'
+alias mr='megarm'
+alias mcc='megacopy'
+alias mmkd='megamkdir'
+#}}} <#98
+#{{{ >>>   taskwarrior >#99
+alias ta='task add'
+alias tl='task list'
+alias td='task done'
+#alias tb='task burndown'
+alias tdd='task delete'
+#alias tbd='task burndown.daily'
+alias tll='task list project:'
+alias by='task add +buy proj:buy'
+alias taaa='task add due:$(date -d "2024-12-15 +2 days" +%Y-%m-%dT23:30:00)'
+alias taa='task add due:$(date +%Y-%m-%d)T23:30:00 proj:$(date +%j)'
+#}}} <#110
+#{{{ >>>   buku >#111
+alias ba='buku -a'
+alias bs='buku -s'
+alias bd='buku -d'
+alias bb='buku -a $(xclip -o)'
+#}}} <#116
+#{{{ >>>   Common >#117
+alias sbb='sudo -u batan bash'
+alias mn='sudo -u batan bash /home/batan/10/menu/scripts/mn.sh'
+alias sb='sudo -u batan bash'
+alias rf='rofi -show drun'
+alias update='sudo apt update && sudo apt upgrade -y'
+alias clean='sudo -u batan bash /home/batan/check/clean.sh'
+alias nuke='sudo -u batan bash /home/batan/check/nuke.sh'
+alias dia='sudo bash /home/batan/10/postinstall/dia.sh'
+alias mov='mv *.mp3 /home/batan/Music & mv *.mp4 /home/batan/Videos/ & mv *.sh /home/batan/Sh & mv *.wiki /home/batan/Wiki & mv *.jpg /home/batan/Pictures'
+alias e='exit'
+alias dhtml='echo "file:///home/batan/10/html/homepage/d.html"| xclip -selection clipboard'
+alias install='sudo apt install'
+alias nala="sudo nala"
+#}}} <#131
+#{{{ >>>   modify existing files >#132
+alias z='sudo chmod +x'
+alias x="xclip -selection clipboard"
+ alias vnote="vim /home/batan/.task/notes/$(date +%j).note.wiki"
+alias ali='vim .bashrc'
+alias alia='vim .bashrc.aliases'
+alias alif="vim /home/batan/.bashrc.functions"
+alias alin='vim /home/batan/.bashrc.navigation'
+alias alit='vim /home/batan/.bashrc.test'
+#}}} <#140
+#{{{ >>>   browser >#141
+alias un='/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=/app/bin/chromium --file-forwarding io.github.ungoogled_software.ungoogled_chromium --js-flags='jitless' @@u %U @@'
+alias fk='falkon'
+#{{{ >>>   Navigation >#144
+alias a='cd /home/batan/lcbash'
+
+#}}} <#147
+#}}} <#148
+#{{{ >>>   Misc >#149
+
+alias v='vim $(find . -maxdepth 1 -type f|fzf  -m --height 8)'
+alias tmm="task $1 modify due:$(date +%Y-%m-%d)T23:30:00 priority:L"
+alias lc-download-mp3="/usr/bin/yt-dlp_linux -x --audio-format mp3"
+alias lc-own="sudo chown -R batan:batan"
+alias laun='sudo -u batan bash /home/batan/.config/i3/launcher/launcher.sh'
+alias door="mpv /home/batan/.config/Door_Bell.mp3"
+alias xf="xfce4-terminal"
+
+#}}} <#159
+alias lctree='h-m-m /home/batan/lcbash/lctree.hmm'
+selectf() {
+        sudo -u batan bash /home/batan/lcbash/functions/sel.sh 
+        cat /home/batan/lcbash/functions/temp | xclip -selec c
+    }
+
+lss() {
+	clear
+	echo -e "\033[34m════════════════════════════════════════════════\033[0m"
+ls
+echo -e "\033[34m════════════════════════════════════════════════\033[0m"
+}
+renamespetial() {
+	while :; do
+	clear
+	ls
+	read -p "charachters to remove >>>   " key1
+	if [[ -z $key1 ]]; then
+		break
+	fi
+	rename s/$key1//g *
+	done
+}
+
+
+
+rename_number() {
+	DIRNAME=$(pwd|rev|sed 's/[/].*$//g'|rev)
+	COUNT="1"
+	EXT=$(ls|head -n1|rev|sed 's/[.].*$//g'|rev) 
+	for x in $(ls); do
+		mv $x ${DIRNAME}.${COUNT}.${EXT}
+		((COUNT++))
+	done
+}
+
+rename_video() {
+	rename  's/ /_/g' *
+	rename  's/!//g' *
+	rename  "s/\'//g" *
+	rename  's/\&//g' *
+	rename  's/\,//g' *
+	rename 's/\[.*\]//g' *
+	rename  's/\(.*\)//g' *
+	rename 's/_\./\./g' *
+	rename 's/[0-9]//g' *
+	rename 's/a//g' *
+	rename 's/o//g' *
+	rename 's/u//g' *
+	rename 's/i//g' *
+	rename 's/e//g' *
+}
+
+shorten_video() {
+for x in $(ls); do
+	EXT=$(echo $x|rev|sed 's/[.].*$//g'|rev)
+	NAME=$(echo $x|rev|sed 's/.*[.]//'|rev|cut -c1,3,5,7,9,11,13,15,17,19)
+	mv $x ${NAME}.${EXT}
+	done
+}
+
+
+url_menu() {
+	abc=$(cat $1 |rev|sed 's/[/].*$//g'|rev;IFS="")
+bcd=$(menu echo $abc)
+cde=$(cat $1 |grep $bcd)
+echo $cde
+}
+
+searchnet() {
+read -p "Search: " XXX
+options=$(ddgr -n25 --noua --np -x $XXX|grep https|cut -c6-200)
+menu echo $options
+}
+#{{{ >>> create_index >#234
+create_index() {
+COUNTER="1"
+DDD=$(pwd|rev|sed 's!/.*$!!g'|rev)
+
+cat 3index >> index.html
+for x in $(ls /media/batan/100/Videos/$DDD/*mp4); do
+echo '   <div class="item">' >> index.html
+echo "            <a href='file://$x'>" >> index.html
+echo '              <div class="item-flip">' >> index.html
+echo '                <div class="item-inner">' >> index.html
+echo "                  <img src='file://$(echo $x|sed 's!mp4!png!g'|sed 's!/Videos/$DDD!/Thumbnails!g')' alt='Adult'>" >> index.html
+echo '                </div>' >> index.html
+echo '                <div class="item-details">' >> index.html
+echo '                  <div class="item-details-inner">' >> index.html
+echo '                    <h2 class="movie-title">Guns Akimbo</h2>' >> index.html
+echo '                    <p class="movie-description">An ordinary guy suddenly finds himself forced to fight a gladiator-like battle for a dark website th&hellip;</p>' >> index.html
+echo '                    <div class="watch-btn">' >> index.html
+echo '                      <div class="imdb-rating" data-content="6.3">' >> index.html
+echo '                        <i class="fa fa-star">></i>>6.3</div>' >> index.html
+echo '                      <span class="movie-date">2019</span>' >> index.html
+echo '                      <span>>Play</span>' >> index.html
+echo '                    </div>' >> index.html
+echo '                  </div>' >> index.html
+echo '                </div>' >> index.html
+echo '              </div>' >> index.html
+echo '            </a>' >> index.html
+echo '          </div>' >> index.html
+done
+cat 2index >> index.html
+
+}
+
+#}}} <#267
+#{{{ >>>   create_thumb >#111
+
+
+create_thumb() {
+for x in $(ls *mp4); do
+	ffmpeg -i "$x" -ss 00:00:10.000 -vframes 1 -vf "scale=380:-1" "${x%.mp4}.png"
+	ffmpeg -i input.jpg -vf scale="'if(gt(a,4/3),180,-1)':'if(gt(a,4/3),-1,380)'" $(echo $x|sed 's!mp4!png!g')
+	#ffmpeg -i $x -ss 00:00:02.000 -vframes 1 $(echo $x|sed 's!mp4!png!g')
+done
+mv *png /media/batan/100/Thumbnails
+}
+
+
+
+
+#}}}
+alias key="less ~/.config/openbox/keybinds.txt "
+alias lcm=" mocp -C ~/.config/moc/config"
+alias lc-source="source lcbash/functions/functions.no.errors.15k"
+alias mkdir="mkdir -p"
+alias lxterminal="lxterminal --working-directory=/home/batan/.lcconfig"
+alias ltr=" h-m-m .lcconfig/lctree.hmm"
+alias yt="yt-dlp"
+alias CLR="echo -e '\033c' >/tmp/mytermpty"
+

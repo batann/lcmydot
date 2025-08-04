@@ -1,0 +1,43 @@
+
+colorscheme moonfly
+
+    autocmd BufWritePre * call UpdateFoldMarkersStart()
+function! UpdateFoldMarkersStart()
+    let l:save_cursor = getpos(".")
+    let l:lines = getline(1, '$')
+    for idx in range(len(l:lines))
+        let line = l:lines[idx]
+        if line =~ '#{{{' " Check for the first marker >#10
+            if line =~ '>\#\d\+' " If the second marker with a number exists, replace the number
+                let newline = substitute(line, '>\#\d\+', '>#' . (idx + 1), '')
+            elseif line =~ '>\#' " If the second marker exists but no number, add the line number
+                let newline = line . (idx + 1)
+            else " If the second marker doesn't exist, add it with the line number at the end
+                let newline = line . ' >#' . (idx + 1)
+            endif
+            call setline(idx + 1, newline)
+        endif
+    endfor
+    call setpos('.', l:save_cursor)
+endfunction
+    
+
+    autocmd BufWritePre * call UpdateFoldMarkersEnd()
+function! UpdateFoldMarkersEnd()
+    let l:save_cursor = getpos(".")
+    let l:lines = getline(1, '$')
+    for idx in range(len(l:lines))
+        let line = l:lines[idx]
+        if line =~ '#}}}' " Check for the first marker >#10
+            if line =~ '<\#\d\+' " If the second marker with a number exists, replace the number
+                let newline = substitute(line, '<\#\d\+', '<#' . (idx + 1), '')
+            elseif line =~ '<\#' " If the second marker exists but no number, add the line number
+                let newline = line . (idx + 1)
+            else " If the second marker doesn't exist, add it with the line number at the end
+                let newline = line . ' <#' . (idx + 1)
+            endif
+            call setline(idx + 1, newline)
+        endif
+    endfor
+    call setpos('.', l:save_cursor)
+endfunction

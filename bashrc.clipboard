@@ -1,0 +1,428 @@
+# vim:fileencoding=utf-8:foldmethod=marker
+
+
+
+
+#{{{ >>>   lc-clipboard functions >#427
+
+
+
+#HTOP="\033[32m┌───────────────────────────────────────────────────────┐\033[9m"
+#HBOT="\033[32m└───────────────────────────────────────────────────────┘\033[0m"
+#files="9x*"
+#cat  /home/batan/.config/lc-clipboard/register{1..9}|grep http|sed 's/^/$HH /g'|sed 's/$/ $HH/g'
+#HH="\033[32m│\033[0m"                                           
+#HF="\033[32m─\033[0m"                         
+#TL="\033[32m┌\033[0m"                                           
+#TR="\033[32m┐\033[0m"                                           
+#HH="\033[32m│\033[0m"                                           
+#files="9x*"
+#HTOP="${TL}$(printf '%*s' "$max_length" | tr ' ' "$HF")${TR}"
+#HBOT="\033[32m└$(printf '%*s' "$max_length" | tr ' ' "$HF")┘\033[0m"
+
+
+#{{{ >>>   reg function  >#445
+move_register() {
+	   
+        cat /home/batan/.config/lc-clipboard/register9|grep "http" >> /home/batan/.config/lc-clipboard/auto.register.md 2>/dev/null
+		rm -f /home/batan/.config/lc-clipboard/register9 2>/dev/null 
+		mv /home/batan/.config/lc-clipboard/register8 /home/batan/.config/lc-clipboard/register9 2>/dev/null 
+		mv /home/batan/.config/lc-clipboard/register7 /home/batan/.config/lc-clipboard/register8 2>/dev/null
+		mv /home/batan/.config/lc-clipboard/register6 /home/batan/.config/lc-clipboard/register7 2>/dev/null
+		mv /home/batan/.config/lc-clipboard/register5 /home/batan/.config/lc-clipboard/register6 2>/dev/null
+		mv /home/batan/.config/lc-clipboard/register4 /home/batan/.config/lc-clipboard/register5 2>/dev/null
+		mv /home/batan/.config/lc-clipboard/register3 /home/batan/.config/lc-clipboard/register4 2>/dev/null
+		mv /home/batan/.config/lc-clipboard/register2 /home/batan/.config/lc-clipboard/register3 2>/dev/null
+		mv /home/batan/.config/lc-clipboard/register1 /home/batan/.config/lc-clipboard/register2 2>/dev/null
+		touch /home/batan/.config/lc-clipboard/register1
+}
+
+#{{{ >>>   register_help >#461
+register_help() {
+    
+        printf "         \033[32m***   \033[37mHELP MENU   \033[32m***\033[36m                     
+        reg [options] file ...\033[34m                            
+        if no options are specified the default behaivior 
+            is to echo all 9 registers otherwise:             	 
+            \033[37mOptions:                                      
+            \033[32m--help\033[0m       prints his menu               
+            \033[32m--echo\033[0m       echos all registers  
+            \033[32m--clear\033[0m      clears all registers          
+            \033[32m--playlist\033[0m   adds selected register[s] to playlist  
+            \033[32m--parse\033[0m      parses selected register[s] to notes  
+            \033[32m--buku\033[0m       bookmarks urls stored in lccboard
+                         using buku and tags them 'lccboard & date j'
+                         deletes all registers
+            \033[32m--append\033[0m     appends individual or all registers to 
+                         a file in a cache file  
+            \033[32m--open\033[0m       opens the url stored in single
+                         or all registers in firefox
+            \033[32m--download\033[0m   prompts for yes no input and  
+                         determins whether to download
+                         mp4 or mp3 format
+            \033[32m--redirect\033[0m   stops redirecting clipboard content to
+                         registers, clears clipboard and redirects any content it 
+                         detects to lc-gutenberg directory where the text file gets
+                         converted to mp3 tts and is played. There after both files 
+                         are deleted.
+                         requires no further interaction.
+
+
+            \033[36mExample command:\033[37m
+        reg --redirect tts\033[36m
+            [clear clipboard, registers and exec tts]\033[37m
+        reg --download all mp4\033[36m
+            [assumes url in all registers and starts downloading them as mp4s]\033[37m
+        reg --download 1,2,3 mp3\033[36m
+            [as above but does so from register 1,2 and 3]\033[37m
+        reg --parse [all,1-9]  will parse the selected gegister to 
+		                       plain text in .lcconfig/notes as 
+							   reg.$REG.$(date +%j.%M).wiki
+			reg --copy all\033[0m       copies all registers to cache 
+        reg --playlist 2\033[36m
+            [adds url stored in register 2 to $playlist_variable ]\033[37m 
+            
+            This software is free to use blah blah blah blah  
+            but dont forget to subscripe,  hug my youtube channel
+            kiss it, hold it and call it babe....             
+            "
+        }
+#}}} <#507
+reg() {
+
+    get_urls() {
+HH="\033[32m│\033[0m"                                           
+HF="\033[32m─\033[0m"                         
+TL="\033[32m┌\033[0m"                                           
+TR="\033[32m┐\033[0m"                                           
+HH="\033[32m│\033[0m"                                           
+files=$(ls  /home/batan/.config/lc-clipboard/register[0-9])
+HTOP="${TL}$(printf '%*s' "$max_length" | tr ' ' "$HF")${TR}"
+HBOT="\033[32m└$(printf '%*s' "$max_length" | tr ' ' "$HF")┘\033[0m"
+max_length=$(cat $files | awk '{ if (length > max) max = length } END { print max }')
+nu_files=$(cat /home/batan/.config/lc-clipboard/register[0-9]|grep http|wc -l)
+
+}
+print_all_urls() {
+    tput cup 3 20
+    echo -e "\033[36mDownloading the Following URLs:"
+    tput cup 4 0
+    echo -e "$TL$(printf '%*s' "$max_length" | tr ' ' "$HF")$TR"
+    for i in $(seq $nu_files -1 1); do
+        tput cup $(( 4 + $i )) 0
+        echo -e $HH
+        tput cup $(( 4 + $i )) $max_length
+        echo -e $HH
+    done
+    echo -e "$TL$(printf '%*s' "$max_length" | tr ' ' "$HF")$TR"
+    for x in $(cat /home/batan/.config/lc-clipboard/register{1..9}|grep http); do
+        tput cup $(( 4 + $i )) 1
+        echo $x
+    done
+
+}
+print_urls() {
+  echo "$HTOP"
+ tput cup 1
+  cat $files | awk -v hh="$HH" '{ print hh $0 hh }'
+  echo "$HBOT"
+}
+
+
+
+    COUN="$(ls /home/batan/.config/lc-clipboard/total.list*|wc -l)"
+    if [[ $1 == "--copy" ]] && [[ $2 == "all" ]]; then
+        ((COUN++))
+        cat /home/batan/.config/lc-clipboard/register{1..9} >> /home/batan/.config/lc-clipboard/total.list.$COUN
+        echo -e "\033[36mYour cache file:\033[0m"
+        ls /home/batan/.config/lc-clipboard/total.list.$COUN
+        cat /home/batan/.config/lc-clipboard/total.list.$COUN
+    elif [[ $1 == "--download" ]] && [[ $2 == "all" ]]; then
+        if [[ $3 == mp4 ]]; then
+            clear
+
+            get_urls
+            print_all_urls
+            #echo -e "\033[36mDownloading the URLs as MP4s...\033[0m"
+			for x in $(seq 1 9); do
+			
+				URL=$(cat /home/batan/.config/lc-clipboard/register${i}) 
+				TITLE=$(/usr/bin/yt-dlp --skip-download --get-title $URL|sed 's/ /_/g')
+				/usr/bin/yt-dlp $URL -o $TITLE.mp4
+			done
+        else
+            clear
+            get_urls
+            print_all_urls
+            #echo -e "\033[36mDownloading the URLs as MP3s...\033[0m"
+            yt-dlp -x --extract-audio --restrict-filenames -a /home/batan/.config/lc-clipboard/register{1..9} 
+        fi
+
+	elif [[ $1 == "--playlist" ]] && [[ $2 == [0-9] ]]; then
+		cat /home/batan/.config/lc-clipboard/register${2} >> /home/batan/.lcconfig/lists/playlist.$(date +%j)
+	elif [[ $1 == "--playlist" ]] && [[ $2 == "all" ]]; then
+		cat /home/batan/.config/lc-clipboard/register{1..9} >> /home/batan/.lcconfig/lists/playlist.$(date +%j)
+	fi
+  
+
+	if [[ $1 == "--download" ]] && [[ $2  =~ ^[0-9]+$ ]]; then
+        if [[ $3 == mp4 ]]; then
+            clear
+            get_urls
+            print_all_urls
+            #echo -e "\033[36mDownloading the URLs as MP4s...\033[0m"
+            yt-dlp -a /home/batan/.config/lc-clipboard/register${2} 
+        else
+            clear
+            get_urls
+            print_all_urls
+            #echo -e "\033[36mDownloading the URLs as MP3s...\033[0m"
+            yt-dlp -x --extract-audio --restrict-filenames -a /home/batan/.config/lc-clipboard/register${2} 
+        fi
+    elif [[ $1 == "--open" ]] && [[ $2 == "all" ]]; then
+        for i in $(seq 9 -1 1);
+        do
+            sudo killall firefox-bin
+      firefox $(cat "/home/batan/.config/lc-clipboard/register$i")
+        done
+    elif [[ $1 == "--open" ]] && [[ $2 =~ ^[0-9]+$ ]]; then
+        sudo killall firefox-bin
+            firefox $(cat "/home/batan/.config/lc-clipboard/register$2")
+    elif [[ $1 == "--parse" ]] && [[ $2 == "all" ]]; then
+		for REG in $(seq 1 9); do
+			#!/bin/bash
+TITLE=$(curl -sL "$URL" | awk '
+    /<title>/ { in_title=1; next }
+    /<\/title>/ { in_title=0; exit }
+    in_title { print }
+' | tr '\n' ' ' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/[[:space:]]+/_/g')
+
+
+#TITLE=$(curl -sL "$URL" | awk '
+#    /<title>/ { in_title=1; next }
+#    /<\/title>/ { in_title=0; exit }
+#    in_title { print }
+#' | tr -d "\n")
+
+
+
+#			if [[ $(curl -sL $REG|grep "<title>"|sed 's/<title>//g'|wc -c) < "5" ]];then 
+#				TITLE=$(curl -sL $REG|grep "<title>"|sed 's/<title>//g'|sed 's!</title>!!g'|sed 's/ /_/g')
+#			fi
+
+
+				
+
+			curl -sL $(cat /home/batan/.config/lc-clipboard/register${REG})|pandoc -f html -t plain >>  /home/batan/.lcconfig/notes/${TITLE}.wiki
+		done
+    elif [[ $1 == "--parse" ]] && [[ $2 =~ ^[0-9]+$ ]]; then
+			curl -sL $(cat /home/batan/.config/lc-clipboard/register${2})  |pandoc -f html -t plain >>  /home/batan/.lcconfig/notes/${TITLE}.wiki
+	
+
+
+
+    
+    elif [[ $1 == "--playlist" ]]; then
+        if [[ -z $2 ]]; then
+            register_help
+        fi
+        if [[ $2 == "all" ]]; then
+            for i in $(seq 9 -1 1); do
+                playlist_input="$playlist_input $(cat "/home/batan/.config/lc-clipboard/register$i")"
+            done
+        elif [[ $2 == [0-9] ]];then
+            playlist_input="$playlist_input $(cat "/home/batan/.config/lc-clipboard/register$2")"
+        fi
+    elif [[ $1 == "--loop" ]]; then
+        if [[ ! -f "/home/batan/.config/lc-clipboard/loop_register" ]]; then
+        touch "/home/batan/.config/lc-clipboard/loop_register"
+        else
+        reg --append 1 /home/batan/.config/lc-clipboard/loop_register
+        fi
+        
+
+    elif [[ $1 == "--redirect" ]] && [[ $2 == "tts" ]]; then
+        xclip -selection clipboard /dev/null && xclip -selection primary /dev/null
+        if [[ ! -f "/home/batan/.config/lc-clipboard/toggle_register" ]]; then
+            touch "/home/batan/.config/lc-clipboard/toggle_register"
+        else
+            rm -f "/home/batan/.config/lc-clipboard/toggle_register"
+            
+        fi
+   # elif [[ $1 == "--parse" ]] && [[ $2 == "all" ]]; then
+
+    #    for i in $(seq 9 -1 1); do
+     #       curl -sL -A "$USER_AGENT" $(cat "/home/batan/.config/lc-clipboard/register$i")|grep https|sed 's!.*https!https!g'|grep "m3u8"|rev|cut -c4-300|rev
+      #  done
+       #     else
+        #        curl -sL -A "$USER_AGENT" $(cat "/home/batan/.config/lc-clipboard/register$2")|grep https|sed 's!.*https!https!g'|grep "m3u8"|rev|cut -c4-300|rev
+         #       fi
+
+
+
+
+
+    elif [[ $1 == "--append" ]] && [[ $2 == "all" ]]; then
+        for i in $(seq 9 -1 1);
+        do
+            cat "/home/batan/.config/lc-clipboard/register$i" >> $3
+        done
+    elif [[ $1 == "--append" ]] && [[ $2 =~ ^[0-9]+$ ]]; then
+            cat "/home/batan/.config/lc-clipboard/register$2" >> $3
+    
+
+
+    elif [[ $1 == "--clear" ]] && [[ $2 == "all" ]]; then
+        rm /home/batan/.config/lc-clipboard/register{1..9} 
+        touch /home/batan/.config/lc-clipboard/register{1..9} 
+    elif [[ $1 == "--clear" ]] && [[ $2 =~ ^[0-9]+$ ]]; then
+        rm /home/batan/.config/lc-clipboard/register${2} 
+        touch /home/batan/.config/lc-clipboard/register${2}
+     
+
+
+    elif [[ $1 == "--echo" ]] && [[ $2 == "all" ]]; then
+        cat /home/batan/.config/lc-clipboard/register{1..9} 
+    elif [[ $1 == "--echo" ]] && [[ $2 =~ ^[0-9]+$ ]]; then
+        cat "/home/batan/.config/lc-clipboard/register${2}" 
+
+    elif [[ $1 == "--buku" ]] && [[ $2 == "all" ]]; then
+        for x in $(seq 9 -1 1); do
+            buku --add $(cat /home/batan/.config/lc-clipboard/register${x}|grep "http") +$(date +%j),lccboard 
+            sudo trash /home/batan/.config/lc-clipboard/register${x}
+            touch /home/batan/.config/lc-clipboard/register${x}
+        done
+    elif [[ $1 == "--buku" ]] && [[ $2 =~ ^[0-9]+$ ]]; then
+            buku --add $(cat /home/batan/.config/lc-clipboard/register${2}|grep "http") +$(date +%j),lccboard 
+            sudo trash /home/batan/.config/lc-clipboard/register${2}
+            touch /home/batan/.config/lc-clipboard/register${2}
+
+    elif [[ $1 == "--help" ]]; then
+        register_help
+        elif [[ $1 == "" ]]; then
+            cat /home/batan/.config/lc-clipboard/register{1..9} 
+    fi
+
+}
+#}}} <#668
+#{{{ >>>   reg{1..9} functions >#669
+
+reg1() {
+    cat /home/batan/.config/lc-clipboard/register1
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register1|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+
+}
+
+reg2() {
+    cat /home/batan/.config/lc-clipboard/register2
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register1|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+
+
+reg3() {
+    cat /home/batan/.config/lc-clipboard/register3
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register3|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+
+reg4() {
+    cat /home/batan/.config/lc-clipboard/register4
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register4|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+reg5() {
+    cat /home/batan/.config/lc-clipboard/register5
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register5|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+
+reg6() {
+    cat /home/batan/.config/lc-clipboard/register6
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register6|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+
+reg7() {
+    cat /home/batan/.config/lc-clipboard/register7
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register7|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+
+reg8() {
+    cat /home/batan/.config/lc-clipboard/register8
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register8|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+
+reg9() {
+    cat /home/batan/.config/lc-clipboard/register9
+    echo -e ' Copy?'
+    yesno
+    if [[ $YESNO == 0 ]];
+    then
+        cat .config/lc-clipboard/register9|xclip -selection clipboard
+        echo -e '\033[44m\033[37mYES\033[0m'
+    else
+        echo -e '\033[44m\033[37mNO\033[0m'
+    fi
+}
+#}}} <#788
+
